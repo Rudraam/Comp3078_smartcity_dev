@@ -11,8 +11,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { cityName, message, history } = req.body;
 
       if (!cityName || !message) {
+        console.error("[API] Missing required fields:", { cityName, message });
         return res.status(400).json({ error: "Missing required fields" });
       }
+
+      console.log(`[API] Processing AI chat request for ${cityName}`);
 
       const response = await getCityAssistantResponse(
         cityName,
@@ -20,10 +23,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         history || []
       );
 
+      console.log("[API] Successfully got AI response, sending to client");
       res.json({ response });
-    } catch (error) {
-      console.error("AI chat error:", error);
-      res.status(500).json({ error: "Failed to get AI response" });
+    } catch (error: any) {
+      console.error("[API] AI chat error:", error.message || error);
+      res.status(500).json({ 
+        error: "Failed to get AI response",
+        details: error.message 
+      });
     }
   });
 

@@ -1,7 +1,7 @@
 import OpenAI from "openai";
 
 // Reference: blueprint:javascript_openai integration
-// the newest OpenAI model is "gpt-5" which was released August 7, 2025. do not change this unless explicitly requested by the user
+// Using gpt-4o for reliable responses
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -28,16 +28,29 @@ Be friendly, informative, and concise. Use your knowledge to provide accurate in
       { role: "user", content: userMessage }
     ];
 
+    console.log(`[AI] Sending request to OpenAI for ${cityName}:`, userMessage);
+
     const response = await openai.chat.completions.create({
-      model: "gpt-5",
+      model: "gpt-4o",  // Using gpt-4o as a reliable fallback
       messages: messages,
-      max_completion_tokens: 500,
+      max_tokens: 500,
     });
 
-    return response.choices[0].message.content || "I apologize, I couldn't generate a response.";
-  } catch (error) {
-    console.error("OpenAI API error:", error);
-    throw new Error("Failed to get AI response");
+    console.log(`[AI] OpenAI response received, content length:`, response.choices[0]?.message?.content?.length || 0);
+    
+    const content = response.choices[0]?.message?.content;
+    if (!content) {
+      console.error("[AI] OpenAI returned empty content");
+      throw new Error("OpenAI returned empty response");
+    }
+
+    return content;
+  } catch (error: any) {
+    console.error("[AI] OpenAI API error:", error.message || error);
+    if (error.response) {
+      console.error("[AI] OpenAI error response:", error.response.data);
+    }
+    throw new Error(`Failed to get AI response: ${error.message || "Unknown error"}`);
   }
 }
 
@@ -51,7 +64,7 @@ export async function getCityRecommendations(
     Format as JSON with this structure: { "recommendations": [{ "name": string, "description": string, "feature": string }] }`;
 
     const response = await openai.chat.completions.create({
-      model: "gpt-5",
+      model: "gpt-4o",
       messages: [
         {
           role: "system",
@@ -60,7 +73,7 @@ export async function getCityRecommendations(
         { role: "user", content: prompt }
       ],
       response_format: { type: "json_object" },
-      max_completion_tokens: 500,
+      max_tokens: 500,
     });
 
     return response.choices[0].message.content || "{}";
