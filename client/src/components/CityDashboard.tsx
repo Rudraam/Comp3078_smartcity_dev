@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Cloud, Thermometer, Droplets, Wind, AlertCircle, Calendar, 
   MapPin, Bus, Train, Car, Utensils, Hotel, Star, ExternalLink 
@@ -9,6 +10,8 @@ import {
 import dashboardImage from "@assets/generated_images/City_data_dashboard_interface_b50eb8a1.png";
 import restaurantImage from "@assets/generated_images/Modern_restaurant_interior_aa20e583.png";
 import hotelImage from "@assets/generated_images/Luxury_hotel_room_cityview_f1e718e3.png";
+import CityMap from "./CityMap";
+import AIChatAssistant from "./AIChatAssistant";
 
 interface CityDashboardProps {
   cityName: string;
@@ -296,6 +299,12 @@ export default function CityDashboard({ cityName, onBackToSearch }: CityDashboar
               ))}
             </CardContent>
           </Card>
+        </div>
+
+        {/* Map and AI Assistant Section */}
+        <div className="grid lg:grid-cols-2 gap-6">
+          <CityMap cityName={cityName} />
+          <AIChatAssistant cityName={cityName} />
         </div>
       </div>
     </div>
