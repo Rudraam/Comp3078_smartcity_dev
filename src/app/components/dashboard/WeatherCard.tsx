@@ -1,0 +1,71 @@
+import { motion } from "motion/react";
+import type { WeatherData } from "../../types";
+import { CloudIcon, WindIcon, HumidityIcon } from "./DashboardIcons";
+
+interface WeatherCardProps {
+  weather: WeatherData;
+}
+
+export default function WeatherCard({ weather }: WeatherCardProps) {
+  return (
+    <motion.section
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, delay: 0.1 }}
+      className="bg-[#23262f] rounded-2xl p-6 mb-6"
+    >
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-6">
+        {/* Weather Conditions */}
+        <div>
+          <p className="text-[#99a1af] text-sm mb-3">
+            {"\u26C5"} Weather Conditions
+          </p>
+          <p className="text-6xl font-normal mb-2">{weather.temperature}°C</p>
+          <p className="text-[#99a1af]">Feels like {weather.feelsLike}°</p>
+        </div>
+
+        {/* Air Quality */}
+        <div>
+          <p className="text-[#99a1af] text-sm mb-3">
+            {"\uD83C\uDF0D"} Air Quality
+          </p>
+          <p className="text-6xl font-normal mb-2">{weather.airQuality}</p>
+          <p className="text-[#99a1af] mb-1">{weather.airQualityLabel}</p>
+          <p className="text-[#51a2ff] text-sm">
+            {weather.airQualityDescription}
+          </p>
+        </div>
+      </div>
+
+      {/* Weather Metrics */}
+      <div className="grid grid-cols-3 gap-6 mb-4">
+        <div className="flex flex-col items-center">
+          <CloudIcon />
+          <p className="text-[#99a1af] text-xs mt-2 mb-1">Clouds</p>
+          <p className="text-lg">{weather.clouds}%</p>
+        </div>
+        <div className="flex flex-col items-center">
+          <WindIcon />
+          <p className="text-[#99a1af] text-xs mt-2 mb-1">Wind</p>
+          <p className="text-lg">{weather.wind} km/h</p>
+        </div>
+        <div className="flex flex-col items-center">
+          <HumidityIcon />
+          <p className="text-[#99a1af] text-xs mt-2 mb-1">Humidity</p>
+          <p className="text-lg">{weather.humidity}%</p>
+        </div>
+      </div>
+
+      {/* PM2.5 Progress Bar */}
+      <div className="mt-4">
+        <p className="text-[#99a1af] text-xs mb-2">PM2.5</p>
+        <div className="w-full bg-[#3a3e4a] rounded-full h-2">
+          <div
+            className="bg-gradient-to-r from-blue-500 to-blue-400 h-2 rounded-full"
+            style={{ width: "60%" }}
+          />
+        </div>
+      </div>
+    </motion.section>
+  );
+}
