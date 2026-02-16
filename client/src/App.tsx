@@ -65,9 +65,9 @@ function App() {
             </div>
           )}
           
-          {/* User Info - Fixed Position */}
-          {user && currentView !== "welcome" && currentView !== "auth" && (
-            <div className="fixed top-6 left-6 z-50">
+          {/* User Info - Fixed Position (bottom-left to avoid header overlap) */}
+          {user && currentView !== "welcome" && currentView !== "auth" && currentView !== "dashboard" && (
+            <div className="fixed bottom-6 left-6 z-50 pointer-events-none">
               <div className="bg-card border border-border rounded-lg px-4 py-2 shadow-sm">
                 <p className="text-sm text-foreground" data-testid="text-user-welcome">
                   Welcome, <span className="font-semibold">{user.username}</span>
