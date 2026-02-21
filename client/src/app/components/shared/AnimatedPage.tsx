@@ -1,0 +1,22 @@
+import { motion } from "motion/react";
+
+interface AnimatedPageProps {
+  children: React.ReactNode;
+  className?: string;
+}
+
+export default function AnimatedPage({
+  children,
+  className = "",
+}: AnimatedPageProps) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, ease: "easeOut" }}
+      className={className}
+    >
+      {children}
+    </motion.div>
+  );
+}
