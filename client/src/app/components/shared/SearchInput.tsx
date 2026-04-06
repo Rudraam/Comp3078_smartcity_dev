@@ -30,12 +30,12 @@ export default function SearchInput({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
-          className="w-full bg-[#23262f] text-white placeholder-[#6b7280] px-6 py-3 pr-12 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1152d4] transition-all"
+          className="w-full bg-[var(--app-card)] text-[var(--app-text)] placeholder-[#6b7280] px-6 py-3 pr-12 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1152d4] transition-all"
         />
         {!buttonLabel && (
           <button
             type="submit"
-            className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-[#3a3e4a] rounded-lg transition-colors"
+            className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-[var(--app-card-hover)] rounded-lg transition-colors"
           >
             <Search className="w-5 h-5 text-[#9ca3af]" />
           </button>
@@ -44,7 +44,7 @@ export default function SearchInput({
       {buttonLabel && (
         <button
           type="submit"
-          className="bg-[#1152d4] hover:bg-[#0d3fa3] transition-colors px-8 py-3 rounded-lg font-medium"
+          className="bg-[#1152d4] hover:bg-[#0d3fa3] transition-colors text-white px-8 py-3 rounded-lg font-medium"
         >
           {buttonLabel}
         </button>

@@ -64,7 +64,7 @@ export default function LandingPage() {
           <h1 className="text-6xl md:text-7xl lg:text-8xl xl:text-9xl font-bold text-white mb-8 drop-shadow-lg">
             Explore Smart Cities
           </h1>
-          <p className="text-xl md:text-2xl lg:text-3xl xl:text-4xl text-white mb-12 drop-shadow-lg max-w-5xl mx-auto leading-relaxed">
+          <p className="text-xl md:text-2xl lg:text-3xl xl:text-4xl text-white/90 mb-12 drop-shadow-lg max-w-5xl mx-auto leading-relaxed">
             Discover comprehensive city information including weather, pollution
             levels, events, transportation, restaurants, and hotels - all in one
             place.
@@ -84,7 +84,7 @@ export default function LandingPage() {
                   .getElementById("features")
                   ?.scrollIntoView({ behavior: "smooth" });
               }}
-              className="bg-[#2c2c2c] hover:bg-[#1a1a1a] transition-colors text-white px-12 py-6 rounded-[40px] text-2xl md:text-3xl lg:text-4xl font-bold shadow-lg"
+              className="bg-[#2c2c2c] hover:bg-[#3a3e4a] transition-colors text-white px-12 py-6 rounded-[40px] text-2xl md:text-3xl lg:text-4xl font-bold shadow-lg"
             >
               Learn More
             </button>
@@ -168,7 +168,7 @@ export default function LandingPage() {
             onClick={() => navigate("/auth")}
             className="bg-white hover:bg-gray-100 transition-colors text-[#1152d4] px-10 py-4 rounded-full text-lg font-bold shadow-lg"
           >
-            Get Started For Free
+            Get Started
           </button>
         </div>
       </section>

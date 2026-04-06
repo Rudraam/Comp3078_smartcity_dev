@@ -18,26 +18,31 @@ export default function EventsPreview({ events, onEventClick }: EventsPreviewPro
         </h3>
         <button
           onClick={() => navigate("/events")}
-          className="text-[#99a1af] hover:text-white transition-colors flex items-center gap-1 text-sm"
+          className="flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-lg bg-[#1152d4]/10 text-[#1152d4] hover:bg-[#1152d4]/20 transition-colors"
         >
-          {"\u2630"} See All
+          See All &rsaquo;
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      {events.length === 0 && (
+        <div className="bg-[var(--app-card)] border border-[var(--app-border)] rounded-2xl p-8 text-center text-[var(--app-text-muted)]">
+          No upcoming events found for this city.
+        </div>
+      )}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
         {events.map((event) => (
           <div
             key={event.id}
-            className="bg-[#23262f] rounded-2xl p-5 hover:bg-[#2a2e3a] transition-colors cursor-pointer"
+            className="bg-[var(--app-card)] border border-[var(--app-border)] rounded-2xl p-5 hover:bg-[var(--app-card-inner)] transition-colors cursor-pointer"
             onClick={() => onEventClick?.(event.id)}
           >
-            <p className="text-[#99a1af] text-xs mb-2">{event.category}</p>
+            <p className="text-[var(--app-text-muted)] text-xs mb-2">{event.category}</p>
             <h4 className="text-lg font-semibold mb-3">{event.name}</h4>
-            <div className="flex items-center gap-2 text-[#99a1af] text-sm mb-2">
+            <div className="flex items-center gap-2 text-[var(--app-text-muted)] text-sm mb-2">
               <CalendarIcon />
               <span>{event.date}</span>
             </div>
-            <div className="flex items-center gap-2 text-[#99a1af] text-sm">
+            <div className="flex items-center gap-2 text-[var(--app-text-muted)] text-sm">
               <LocationIcon />
               <span>{event.location}</span>
             </div>

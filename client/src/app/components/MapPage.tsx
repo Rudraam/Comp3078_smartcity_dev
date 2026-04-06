@@ -170,7 +170,7 @@ function AutocompleteInput({
 
   return (
     <div ref={containerRef} className="relative flex-1">
-      <label className="text-xs text-[#99a1af] mb-1 block">{label}</label>
+      <label className="text-xs text-[var(--app-text-muted)] mb-1 block">{label}</label>
       <div className="relative">
         <div className="absolute left-3 top-1/2 -translate-y-1/2">{icon}</div>
         <input
@@ -180,24 +180,24 @@ function AutocompleteInput({
           onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
-          className="w-full bg-[#2a2e3a] text-white placeholder-[#6b7280] pl-10 pr-10 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1152d4] transition-all text-sm"
+          className="w-full bg-[var(--app-card-inner)] text-[var(--app-text)] placeholder-[#6b7280] pl-10 pr-10 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1152d4] transition-all text-sm"
         />
         {loading && (
           <div className="absolute right-3 top-1/2 -translate-y-1/2">
-            <Loader2 className="w-4 h-4 animate-spin text-[#99a1af]" />
+            <Loader2 className="w-4 h-4 animate-spin text-[var(--app-text-muted)]" />
           </div>
         )}
         {value && !loading && (
           <button
             onClick={() => { onChange(""); setSuggestions([]); setShowSuggestions(false); }}
-            className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 hover:bg-[#3a3e4a] rounded transition-colors"
+            className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 hover:bg-[var(--app-card-hover)] rounded transition-colors"
           >
-            <X className="w-3.5 h-3.5 text-[#99a1af]" />
+            <X className="w-3.5 h-3.5 text-[var(--app-text-muted)]" />
           </button>
         )}
       </div>
       {showSuggestions && suggestions.length > 0 && (
-        <div className="absolute z-[9999] left-0 right-0 mt-1 bg-[#23262f] border border-[#3a3e4a] rounded-lg shadow-xl max-h-48 overflow-y-auto">
+        <div className="absolute z-[9999] left-0 right-0 mt-1 bg-[var(--app-card)] border border-[var(--app-border)] rounded-lg shadow-xl max-h-48 overflow-y-auto">
           {suggestions.map((s, i) => (
             <button
               key={`${s.lat}-${s.lon}-${i}`}
@@ -206,10 +206,10 @@ function AutocompleteInput({
                 onChange(s.name);
                 setShowSuggestions(false);
               }}
-              className="w-full text-left px-4 py-2.5 hover:bg-[#2a2e3a] transition-colors border-b border-[#3a3e4a] last:border-b-0"
+              className="w-full text-left px-4 py-2.5 hover:bg-[var(--app-card-inner)] transition-colors border-b border-[var(--app-border)] last:border-b-0"
             >
-              <p className="text-sm text-white truncate">{s.name}</p>
-              <p className="text-xs text-[#99a1af] truncate">{s.fullName}</p>
+              <p className="text-sm text-[var(--app-text)] truncate">{s.name}</p>
+              <p className="text-xs text-[var(--app-text-muted)] truncate">{s.fullName}</p>
             </button>
           ))}
         </div>
@@ -395,7 +395,7 @@ export default function MapPage() {
     <PageLayout>
       <h1 className="text-6xl font-normal mb-6">{city}</h1>
 
-      <div className="bg-[#23262f] rounded-xl p-4 mb-6">
+      <div className="bg-[var(--app-card)] rounded-xl p-4 mb-6">
         <div className="flex flex-col sm:flex-row gap-3">
           <AutocompleteInput
             value={fromQuery}
@@ -431,29 +431,29 @@ export default function MapPage() {
       )}
 
       {destination && activeRoute && (
-        <div className="flex flex-wrap items-center gap-3 mb-4 bg-[#23262f] rounded-xl px-4 py-3">
+        <div className="flex flex-wrap items-center gap-3 mb-4 bg-[var(--app-card)] rounded-xl px-4 py-3">
           <Navigation className="w-5 h-5 text-[#1152d4]" />
           <div className="flex-1 min-w-0">
-            <p className="text-sm text-[#99a1af]">Directions to</p>
+            <p className="text-sm text-[var(--app-text-muted)]">Directions to</p>
             <p className="font-semibold truncate">{destination.name}</p>
           </div>
           <div className="flex items-center gap-4 text-sm">
             <span className="font-semibold text-[#1152d4]">{formatDistance(activeRoute.distance)}</span>
-            <span className="text-[#99a1af]">{formatDuration(activeRoute.duration)}</span>
+            <span className="text-[var(--app-text-muted)]">{formatDuration(activeRoute.duration)}</span>
           </div>
           {routeLoading && <Loader2 className="w-5 h-5 animate-spin text-[#1152d4]" />}
-          <button onClick={clearRoute} className="p-1 hover:bg-[#3a3e4a] rounded-lg transition-colors">
-            <X className="w-5 h-5 text-[#99a1af]" />
+          <button onClick={clearRoute} className="p-1 hover:bg-[var(--app-card-hover)] rounded-lg transition-colors">
+            <X className="w-5 h-5 text-[var(--app-text-muted)]" />
           </button>
         </div>
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
-          <div className="bg-[#23262f] rounded-2xl overflow-hidden">
+          <div className="bg-[var(--app-card)] rounded-2xl overflow-hidden" style={{ isolation: "isolate" }}>
             <div className="relative h-[500px]">
               {loading ? (
-                <div className="w-full h-full flex items-center justify-center bg-[#3a3e4a]">
+                <div className="w-full h-full flex items-center justify-center bg-[var(--app-card-hover)]">
                   <Loader2 className="w-10 h-10 animate-spin text-[#1152d4]" />
                 </div>
               ) : (
@@ -534,14 +534,14 @@ export default function MapPage() {
                         className={`p-4 rounded-xl transition-all ${
                           isSelected
                             ? "bg-[#1152d4] text-white"
-                            : "bg-[#2a2e3a] hover:bg-[#3a3e4a] text-white"
+                            : "bg-[var(--app-card-inner)] hover:bg-[var(--app-card-hover)] text-[var(--app-text)]"
                         }`}
                       >
                         <div className="flex flex-col items-center gap-2">
                           <Icon className="w-8 h-8" />
                           <span className="text-xs font-medium">{mode.name}</span>
                           <span className="text-xs">{routeLoading ? "..." : duration}</span>
-                          <span className="text-[10px] text-[#99a1af]">{routeLoading ? "" : distance}</span>
+                          <span className="text-[10px] text-[var(--app-text-muted)]">{routeLoading ? "" : distance}</span>
                         </div>
                       </button>
                     );
@@ -551,7 +551,7 @@ export default function MapPage() {
             )}
 
             {!destination && (
-              <div className="p-6 text-center text-[#99a1af]">
+              <div className="p-6 text-center text-[var(--app-text-muted)]">
                 <MapPin className="w-8 h-8 mx-auto mb-2 opacity-50" />
                 <p className="text-sm">Search for a location or click "Directions" on any listing to see routes here</p>
               </div>
@@ -560,38 +560,38 @@ export default function MapPage() {
         </div>
 
         <div className="lg:col-span-1">
-          <div className="bg-[#23262f] rounded-2xl p-6">
+          <div className="bg-[var(--app-card)] rounded-2xl p-6">
             <h3 className="text-xl font-semibold mb-4">Alerts</h3>
 
             <div className="space-y-3">
-              <div className="bg-[#2a2e3a] rounded-xl p-4">
+              <div className="bg-[var(--app-card-inner)] rounded-xl p-4">
                 <div className="flex items-start gap-3">
                   <AlertTriangle className="w-6 h-6 shrink-0 text-orange-400" />
                   <div className="flex-1 min-w-0">
                     <h4 className="font-semibold mb-1 text-sm">Traffic Advisory</h4>
-                    <p className="text-xs text-[#99a1af] line-clamp-2">
+                    <p className="text-xs text-[var(--app-text-muted)] line-clamp-2">
                       Heavy congestion on downtown routes during rush hours (7-9 AM, 4-7 PM)
                     </p>
                   </div>
                 </div>
               </div>
-              <div className="bg-[#2a2e3a] rounded-xl p-4">
+              <div className="bg-[var(--app-card-inner)] rounded-xl p-4">
                 <div className="flex items-start gap-3">
                   <Construction className="w-6 h-6 shrink-0 text-yellow-400" />
                   <div className="flex-1 min-w-0">
                     <h4 className="font-semibold mb-1 text-sm">Road Construction</h4>
-                    <p className="text-xs text-[#99a1af] line-clamp-2">
+                    <p className="text-xs text-[var(--app-text-muted)] line-clamp-2">
                       Lane closures on main arterial roads. Expect delays of 10-15 minutes.
                     </p>
                   </div>
                 </div>
               </div>
-              <div className="bg-[#2a2e3a] rounded-xl p-4">
+              <div className="bg-[var(--app-card-inner)] rounded-xl p-4">
                 <div className="flex items-start gap-3">
                   <CloudRain className="w-6 h-6 shrink-0 text-blue-400" />
                   <div className="flex-1 min-w-0">
                     <h4 className="font-semibold mb-1 text-sm">Weather Alert</h4>
-                    <p className="text-xs text-[#99a1af] line-clamp-2">
+                    <p className="text-xs text-[var(--app-text-muted)] line-clamp-2">
                       Light rain expected this evening. Drive carefully on wet surfaces.
                     </p>
                   </div>

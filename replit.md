@@ -62,8 +62,11 @@ Preferred communication style: Simple, everyday language.
 - RESTful API endpoints under `/api`
 
 **Key Endpoints:**
-- `POST /api/auth/register` - User registration (username/password)
-- `POST /api/auth/login` - User login
+- `POST /api/auth/register` - User registration (first user auto-becomes Admin)
+- `POST /api/auth/login` - User login (returns role in response)
+- `GET /api/auth/me` - Get current session user (with role)
+- `PUT /api/auth/profile` - Update user profile
+- `POST /api/auth/logout` - Logout
 - `POST /api/ai/chat` - AI chat assistant (OpenAI GPT-4o)
 - `GET /api/weather?city=X` - Weather + air quality (Open-Meteo API)
 - `GET /api/restaurants?city=X&limit=N` - Real restaurants with lat/lon (Overpass + Nominatim fallback)
@@ -71,15 +74,24 @@ Preferred communication style: Simple, everyday language.
 - `GET /api/events?city=X&limit=N` - Real venues/events with lat/lon (Overpass + Nominatim fallback)
 - `GET /api/geocode?q=X` - Geocode city/place names to coordinates
 - `GET /api/route?olat=X&olon=X&dlat=X&dlon=X&profile=X` - Route between two points (OSRM)
+- `GET /api/admin/stats` - Admin: dashboard stats (Admin only)
+- `GET /api/admin/users` - Admin: list all users (Admin only)
+- `PUT /api/admin/users/:id/role` - Admin: change user role (Admin only)
+- `GET /api/admin/submissions` - Admin: all listing submissions (Admin only)
+- `PUT /api/admin/submissions/:id` - Admin: approve/reject submission (Admin only)
+- `POST /api/commercial/submissions` - Commercial: submit a listing request
+- `GET /api/commercial/submissions` - Commercial: view own submissions
 
 ### Data Layer
 
 **Database:**
 - Drizzle ORM with PostgreSQL (Neon serverless)
 - DatabaseStorage class with full PostgreSQL persistence
-- Schema: users table with id, username, email, password (bcrypt hashed), phone, location, bio, preferredCity, notificationsEnabled, darkMode
+- Schema: `users` table (id, username, email, password bcrypt-hashed, phone, location, bio, preferredCity, notificationsEnabled, darkMode, role)
+- Schema: `submissions` table (id, userId, type, name, description, address, city, website, phone, additionalInfo, status, adminNote, reviewedBy, createdAt, reviewedAt)
 - Password security: bcrypt with 12 salt rounds
-- Session management: express-session for persistent auth
+- Session management: express-session; session stores userId and role
+- Role system: regular | commercial | admin (first registered user auto-becomes admin)
 
 ### External Dependencies
 
@@ -106,6 +118,17 @@ Preferred communication style: Simple, everyday language.
 - Lucide React icons
 - Framer Motion (motion package)
 - Leaflet + react-leaflet v4 (interactive maps)
+
+## Theme System
+
+**Light/Dark mode** is toggled from the Profile page → Preferences → Dark Mode toggle.
+- Default: light mode
+- Persistence: `localStorage("city-explorer-theme")`
+- CSS variables in `index.css`: `--app-bg`, `--app-card`, `--app-card-inner`, `--app-icon-bg`, `--app-card-hover`, `--app-text`, `--app-text-muted`, `--app-border`
+- Landing page (`/`) and Auth page (`/auth`) are **always dark** — they use hardcoded dark colors and are not affected by the theme toggle
+- All app pages (Dashboard, Restaurants, Hotels, Events, Map, Profile) fully respond to the theme toggle
+- Blue header (`#1152d4`) and blue buttons always use `text-white` regardless of theme
+- `ThemeProvider` wraps the app in `App.tsx`; use `useTheme()` for `isDark`/`setDark`/`toggleTheme`
 
 ## Recent Changes
 
@@ -144,3 +167,15 @@ Preferred communication style: Simple, everyday language.
 - Dashboard search input has live autocomplete dropdown showing disambiguated city suggestions
 - CitySearch component uses real API instead of hardcoded city list
 - All API responses include displayName field for full city identification
+- Collections feature: useCollections.ts hook (localStorage key city-explorer-saved) persists saved places
+- Save/Bookmark toggle buttons added to all three modal types (restaurant, hotel, event) in DetailModal.tsx
+- Past Reviews: placeName column in reviews DB; GET /api/reviews/mine route returns user's reviews
+- ProfilePage: 5-tab activity dashboard — Events Attended, Active Alerts, Check-ins, Saved, My Reviews
+- ProfilePage Saved tab: shows bookmarked restaurants/hotels/events with thumbnail, type, city, saved date
+- ProfilePage My Reviews tab: shows user's submitted reviews with star ratings and timestamps
+- Profile picture upload: click the avatar in ProfilePage to upload a photo; compressed client-side (Canvas API, max 400KB/512px); saved as base64 in DB `users.avatar` column; camera icon overlay on hover; red × button appears to remove photo
+- Header profile button: shows the user's avatar thumbnail when set (falls back to User icon)
+- Avatar is cached in localStorage (`city-explorer-avatar`) via `useAuth` and synced on every `/api/auth/me` call
+- Express body size limit raised to 3MB to support base64 avatar uploads
+- Geolocation on first visit: CityProvider uses `navigator.geolocation` to detect the user's city on first open (no sessionStorage city stored); coordinates are sent to `/api/reverse-geocode` (Nominatim) to resolve city name; defaults to "Toronto, Ontario, Canada" if denied or timed out; Dashboard shows a spinner while resolving and delays all queries until city is known
+- Approved submissions appear in listings: `/api/restaurants`, `/api/hotels`, `/api/events` merge city-matched approved commercial submissions from the DB into their responses; cards show a purple "Community Listing" badge

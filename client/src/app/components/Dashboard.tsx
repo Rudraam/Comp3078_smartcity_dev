@@ -1,13 +1,15 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Search, Bot, X, Utensils, Hotel, MapPin } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Search, Bot, X, Utensils, Hotel, MapPin, Loader2 } from "lucide-react";
 import PageLayout from "./shared/PageLayout";
 import WeatherCard from "./dashboard/WeatherCard";
 import EventsPreview from "./dashboard/EventsPreview";
 import ListPreview from "./dashboard/ListPreview";
-import QuickActions from "./dashboard/QuickActions";
 import AIChatAssistant from "../../components/AIChatAssistant";
+import NotificationPrompt from "./shared/NotificationPrompt";
 import { RestaurantDetailModal, HotelDetailModal, EventDetailModal, useDetailModal } from "./shared/DetailModal";
 import { useCity } from "../hooks/useCityContext";
+import { useNotifications } from "../hooks/useNotifications";
 import type { DashboardConfig, WeatherData, Restaurant, HotelItem, EventItem } from "../types";
 
 interface CitySuggestion {
@@ -19,38 +21,17 @@ interface CitySuggestion {
   admin1: string;
 }
 
-interface ApiEvent {
-  id: string;
-  name: string;
-  category: string;
-  date: string;
-  location: string;
-  time: string;
-  attendees: number;
-  price: number | "Free";
-  image?: string;
-  badge?: string;
-  lat?: number;
-  lon?: number;
-  featured?: boolean;
-}
-
 export default function Dashboard() {
-  const { city, setCity } = useCity();
+  const { city, setCity, cityLoading } = useCity();
+  const queryClient = useQueryClient();
+  const { sendNotification } = useNotifications();
   const [searchQuery, setSearchQuery] = useState("");
   const [showAI, setShowAI] = useState(false);
-  const [weather, setWeather] = useState<WeatherData | null>(null);
-  const [weatherLoading, setWeatherLoading] = useState(true);
-  const [weatherError, setWeatherError] = useState("");
   const [citySuggestions, setCitySuggestions] = useState<CitySuggestion[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const suggestionsRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
-
-  const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
-  const [hotels, setHotels] = useState<HotelItem[]>([]);
-  const [events, setEvents] = useState<EventItem[]>([]);
-  const [dataLoading, setDataLoading] = useState(true);
+  const notifiedCityRef = useRef<string>("");
 
   const restaurantModal = useDetailModal<Restaurant>();
   const hotelModal = useDetailModal<HotelItem>();
@@ -63,58 +44,101 @@ export default function Dashboard() {
     showHotels: true,
   });
 
-  const fetchWeather = useCallback(async (cityName: string) => {
-    setWeatherLoading(true);
-    setWeatherError("");
-    try {
-      const resp = await fetch(`/api/weather?city=${encodeURIComponent(cityName)}`);
+  const { data: weatherData, isLoading: weatherLoading, error: weatherQueryError } = useQuery<WeatherData>({
+    queryKey: [`/api/weather?city=${encodeURIComponent(city)}`],
+    enabled: !cityLoading,
+    queryFn: async () => {
+      const resp = await fetch(`/api/weather?city=${encodeURIComponent(city)}`);
       if (!resp.ok) {
         const data = await resp.json();
         throw new Error(data.error || "Failed to fetch weather");
       }
-      const data = await resp.json();
-      setWeather(data);
-      if (data.displayName) {
-        setCity(data.displayName);
-      } else if (data.city) {
-        setCity(data.city);
-      }
-    } catch (err: any) {
-      setWeatherError(err.message || "Could not load weather data");
-    } finally {
-      setWeatherLoading(false);
-    }
-  }, [setCity]);
+      return resp.json();
+    },
+  });
 
-  const fetchCityData = useCallback(async (cityName: string) => {
-    setDataLoading(true);
-    try {
-      const [restRes, hotelRes, eventRes] = await Promise.allSettled([
-        fetch(`/api/restaurants?city=${encodeURIComponent(cityName)}&limit=4`),
-        fetch(`/api/hotels?city=${encodeURIComponent(cityName)}&limit=4`),
-        fetch(`/api/events?city=${encodeURIComponent(cityName)}&limit=3`),
-      ]);
-
-      if (restRes.status === "fulfilled" && restRes.value.ok) {
-        const data = await restRes.value.json();
-        setRestaurants(data.restaurants || []);
-      }
-      if (hotelRes.status === "fulfilled" && hotelRes.value.ok) {
-        const data = await hotelRes.value.json();
-        setHotels(data.hotels || []);
-      }
-      if (eventRes.status === "fulfilled" && eventRes.value.ok) {
-        const data = await eventRes.value.json();
-        setEvents((data.events || []) as EventItem[]);
-      }
-    } catch {}
-    setDataLoading(false);
-  }, []);
+  const weather = weatherData ?? null;
+  const weatherError = weatherQueryError ? (weatherQueryError as Error).message : "";
 
   useEffect(() => {
-    fetchWeather(city);
-    fetchCityData(city);
-  }, [city, fetchWeather, fetchCityData]);
+    if (weatherData?.displayName) {
+      setCity(weatherData.displayName);
+    } else if ((weatherData as any)?.city) {
+      setCity((weatherData as any).city);
+    }
+  }, [weatherData, setCity]);
+
+  // Send a notification when switching to a new city — once per city
+  useEffect(() => {
+    if (!weatherData || notifiedCityRef.current === city) return;
+    notifiedCityRef.current = city;
+    const shortCity = city.split(",")[0].trim();
+    sendNotification(
+      `Now exploring ${shortCity}`,
+      `Weather, events, restaurants and hotels loaded for ${shortCity}.`,
+      { tag: `city-${city}` }
+    );
+  }, [city, weatherData, sendNotification]);
+
+  // Send weather alert notifications when data loads
+  useEffect(() => {
+    if (!weatherData) return;
+    const { temperature, airQuality, wind } = weatherData as any;
+    if ((airQuality ?? 0) >= 150) {
+      sendNotification(
+        "Poor Air Quality Alert",
+        `AQI is ${airQuality} in ${city.split(",")[0]}. Sensitive groups should avoid outdoor activity.`,
+        { tag: "aqi-alert" }
+      );
+    } else if ((temperature ?? 0) >= 35) {
+      sendNotification(
+        "Heat Advisory",
+        `It's ${temperature}°C in ${city.split(",")[0]}. Stay hydrated and avoid prolonged sun exposure.`,
+        { tag: "heat-alert" }
+      );
+    } else if ((wind ?? 0) >= 50) {
+      sendNotification(
+        "Strong Wind Advisory",
+        `Wind speeds are ${wind} km/h in ${city.split(",")[0]}. Secure loose outdoor items.`,
+        { tag: "wind-alert" }
+      );
+    }
+  }, [weatherData, city, sendNotification]);
+
+  const { data: restData, isLoading: restLoading } = useQuery<{ restaurants: Restaurant[] }>({
+    queryKey: [`/api/restaurants?city=${encodeURIComponent(city)}&limit=4`],
+    enabled: !cityLoading,
+    queryFn: async () => {
+      const res = await fetch(`/api/restaurants?city=${encodeURIComponent(city)}&limit=4`);
+      if (!res.ok) return { restaurants: [] };
+      return res.json();
+    },
+  });
+
+  const { data: hotelData, isLoading: hotelLoading } = useQuery<{ hotels: HotelItem[] }>({
+    queryKey: [`/api/hotels?city=${encodeURIComponent(city)}&limit=4`],
+    enabled: !cityLoading,
+    queryFn: async () => {
+      const res = await fetch(`/api/hotels?city=${encodeURIComponent(city)}&limit=4`);
+      if (!res.ok) return { hotels: [] };
+      return res.json();
+    },
+  });
+
+  const { data: eventData, isLoading: eventLoading } = useQuery<{ events: EventItem[] }>({
+    queryKey: [`/api/events?city=${encodeURIComponent(city)}&limit=3`],
+    enabled: !cityLoading,
+    queryFn: async () => {
+      const res = await fetch(`/api/events?city=${encodeURIComponent(city)}&limit=3`);
+      if (!res.ok) return { events: [] };
+      return res.json();
+    },
+  });
+
+  const restaurants = restData?.restaurants ?? [];
+  const hotels = hotelData?.hotels ?? [];
+  const events = (eventData?.events ?? []) as EventItem[];
+  const dataLoading = restLoading || hotelLoading || eventLoading;
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -150,8 +174,6 @@ export default function Dashboard() {
 
   const selectCity = (cityQuery: string) => {
     setCity(cityQuery);
-    fetchWeather(cityQuery);
-    fetchCityData(cityQuery);
     setSearchQuery("");
     setCitySuggestions([]);
     setShowSuggestions(false);
@@ -212,9 +234,24 @@ export default function Dashboard() {
   return (
     <PageLayout>
       <div className="mb-8">
-        <h2 className="text-6xl font-bold mb-2">{city.split(",")[0].trim()}</h2>
-        {city.includes(",") && (
-          <p className="text-lg text-[#9ca3af] mb-4">{city}</p>
+        {cityLoading ? (
+          <div className="flex items-center gap-3 mb-4">
+            <Loader2 className="w-7 h-7 animate-spin text-[#1152d4]" />
+            <div>
+              <h2 className="text-3xl font-bold">Detecting your location…</h2>
+              <p className="text-sm text-[#9ca3af] mt-1 flex items-center gap-1">
+                <MapPin className="w-3 h-3" />
+                Allow location access to load your city automatically
+              </p>
+            </div>
+          </div>
+        ) : (
+          <>
+            <h2 className="text-6xl font-bold mb-2">{city.split(",")[0].trim()}</h2>
+            {city.includes(",") && (
+              <p className="text-lg text-[#9ca3af] mb-4">{city}</p>
+            )}
+          </>
         )}
 
         <div ref={suggestionsRef} className="relative max-w-2xl">
@@ -225,27 +262,27 @@ export default function Dashboard() {
               onChange={(e) => handleSearchInput(e.target.value)}
               onFocus={() => { if (citySuggestions.length > 0) setShowSuggestions(true); }}
               placeholder="Enter city or area (e.g. London, Ontario)..."
-              className="w-full bg-[#2a2e3a] text-white placeholder-[#6b7280] px-6 py-4 pr-14 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1152d4] transition-all"
+              className="w-full bg-[var(--app-card-inner)] text-[var(--app-text)] placeholder-[#6b7280] px-6 py-4 pr-14 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1152d4] transition-all"
             />
             <button
               type="submit"
-              className="absolute right-3 top-1/2 -translate-y-1/2 p-2 hover:bg-[#3a3e4a] rounded-lg transition-colors"
+              className="absolute right-3 top-1/2 -translate-y-1/2 p-2 hover:bg-[var(--app-card-hover)] rounded-lg transition-colors"
             >
               <Search className="w-5 h-5 text-[#9ca3af]" />
             </button>
           </form>
 
           {showSuggestions && citySuggestions.length > 0 && (
-            <div className="absolute top-full left-0 right-0 mt-1 bg-[#23262f] border border-[#3a3e4a] rounded-xl overflow-hidden z-50 shadow-lg">
+            <div className="absolute top-full left-0 right-0 mt-1 bg-[var(--app-card)] border border-[var(--app-border)] rounded-xl overflow-hidden z-50 shadow-lg">
               {citySuggestions.map((s, i) => (
                 <button
                   key={`${s.lat}-${s.lon}-${i}`}
                   onClick={() => selectSuggestion(s)}
-                  className="w-full text-left px-5 py-3 flex items-center gap-3 hover:bg-[#2a2e3a] transition-colors border-b border-[#3a3e4a] last:border-b-0"
+                  className="w-full text-left px-5 py-3 flex items-center gap-3 hover:bg-[var(--app-card-inner)] transition-colors border-b border-[var(--app-border)] last:border-b-0"
                 >
                   <MapPin className="w-4 h-4 text-[#1152d4] shrink-0" />
                   <div className="min-w-0">
-                    <span className="text-white font-medium">{s.name}</span>
+                    <span className="text-[var(--app-text)] font-medium">{s.name}</span>
                     {(s.admin1 || s.country) && (
                       <span className="text-[#9ca3af] text-sm ml-2">
                         {[s.admin1, s.country].filter(Boolean).join(", ")}
@@ -261,34 +298,34 @@ export default function Dashboard() {
 
       {config.showWeather && (
         weatherLoading ? (
-          <div className="bg-[#23262f] rounded-2xl p-6 mb-6 animate-pulse">
+          <div className="bg-[var(--app-card)] rounded-2xl p-6 mb-6 animate-pulse">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-6">
               <div>
-                <div className="h-4 bg-[#3a3e4a] rounded w-40 mb-3" />
-                <div className="h-16 bg-[#3a3e4a] rounded w-32 mb-2" />
-                <div className="h-4 bg-[#3a3e4a] rounded w-28" />
+                <div className="h-4 bg-[var(--app-card-hover)] rounded w-40 mb-3" />
+                <div className="h-16 bg-[var(--app-card-hover)] rounded w-32 mb-2" />
+                <div className="h-4 bg-[var(--app-card-hover)] rounded w-28" />
               </div>
               <div>
-                <div className="h-4 bg-[#3a3e4a] rounded w-32 mb-3" />
-                <div className="h-16 bg-[#3a3e4a] rounded w-24 mb-2" />
-                <div className="h-4 bg-[#3a3e4a] rounded w-36" />
+                <div className="h-4 bg-[var(--app-card-hover)] rounded w-32 mb-3" />
+                <div className="h-16 bg-[var(--app-card-hover)] rounded w-24 mb-2" />
+                <div className="h-4 bg-[var(--app-card-hover)] rounded w-36" />
               </div>
             </div>
             <div className="grid grid-cols-3 gap-6">
               {[1,2,3].map(i => (
                 <div key={i} className="flex flex-col items-center">
-                  <div className="h-10 w-10 bg-[#3a3e4a] rounded-full" />
-                  <div className="h-3 bg-[#3a3e4a] rounded w-12 mt-2" />
-                  <div className="h-5 bg-[#3a3e4a] rounded w-16 mt-1" />
+                  <div className="h-10 w-10 bg-[var(--app-card-hover)] rounded-full" />
+                  <div className="h-3 bg-[var(--app-card-hover)] rounded w-12 mt-2" />
+                  <div className="h-5 bg-[var(--app-card-hover)] rounded w-16 mt-1" />
                 </div>
               ))}
             </div>
           </div>
         ) : weatherError ? (
-          <div className="bg-[#23262f] rounded-2xl p-6 mb-6 text-center">
+          <div className="bg-[var(--app-card)] rounded-2xl p-6 mb-6 text-center">
             <p className="text-red-400 mb-2">{weatherError}</p>
             <button
-              onClick={() => fetchWeather(city)}
+              onClick={() => queryClient.invalidateQueries({ queryKey: [`/api/weather?city=${encodeURIComponent(city)}`] })}
               className="text-[#51a2ff] hover:underline text-sm"
             >
               Try again
@@ -299,15 +336,13 @@ export default function Dashboard() {
         ) : null
       )}
 
-      <QuickActions />
-
       {config.showEvents && (
         dataLoading ? (
-          <div className="bg-[#23262f] rounded-2xl p-6 mb-6 animate-pulse">
-            <div className="h-6 bg-[#3a3e4a] rounded w-40 mb-4" />
+          <div className="bg-[var(--app-card)] rounded-2xl p-6 mb-6 animate-pulse">
+            <div className="h-6 bg-[var(--app-card-hover)] rounded w-40 mb-4" />
             <div className="space-y-3">
               {[1,2,3].map(i => (
-                <div key={i} className="h-16 bg-[#3a3e4a] rounded" />
+                <div key={i} className="h-16 bg-[var(--app-card-hover)] rounded" />
               ))}
             </div>
           </div>
@@ -316,14 +351,14 @@ export default function Dashboard() {
         )
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {config.showRestaurants && (
           dataLoading ? (
-            <div className="bg-[#23262f] rounded-2xl p-6 animate-pulse">
-              <div className="h-6 bg-[#3a3e4a] rounded w-40 mb-4" />
+            <div className="bg-[var(--app-card)] rounded-2xl p-6 animate-pulse">
+              <div className="h-6 bg-[var(--app-card-hover)] rounded w-40 mb-4" />
               <div className="space-y-3">
                 {[1,2,3].map(i => (
-                  <div key={i} className="h-16 bg-[#3a3e4a] rounded" />
+                  <div key={i} className="h-16 bg-[var(--app-card-hover)] rounded" />
                 ))}
               </div>
             </div>
@@ -340,11 +375,11 @@ export default function Dashboard() {
 
         {config.showHotels && (
           dataLoading ? (
-            <div className="bg-[#23262f] rounded-2xl p-6 animate-pulse">
-              <div className="h-6 bg-[#3a3e4a] rounded w-40 mb-4" />
+            <div className="bg-[var(--app-card)] rounded-2xl p-6 animate-pulse">
+              <div className="h-6 bg-[var(--app-card-hover)] rounded w-40 mb-4" />
               <div className="space-y-3">
                 {[1,2,3].map(i => (
-                  <div key={i} className="h-16 bg-[#3a3e4a] rounded" />
+                  <div key={i} className="h-16 bg-[var(--app-card-hover)] rounded" />
                 ))}
               </div>
             </div>
@@ -398,6 +433,8 @@ export default function Dashboard() {
           city={city}
         />
       )}
+
+      <NotificationPrompt />
     </PageLayout>
   );
 }

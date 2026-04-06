@@ -6,7 +6,7 @@ const legendItems = [
 
 export default function TrafficLegend() {
   return (
-    <div className="absolute bottom-4 left-4 bg-[#1f2533] px-4 py-3 rounded-lg">
+    <div className="absolute bottom-4 left-4 bg-[var(--app-card-inner)] px-4 py-3 rounded-lg">
       {legendItems.map((item) => (
         <div key={item.label} className="flex items-center gap-2 mb-2 last:mb-0">
           <div className={`w-3 h-3 rounded-full ${item.color}`} />

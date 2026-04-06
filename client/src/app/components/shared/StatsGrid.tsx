@@ -10,7 +10,7 @@ export default function StatsGrid({ stats }: StatsGridProps) {
       {stats.map((stat) => (
         <div key={stat.label} className="text-center">
           <p className="text-4xl font-bold">{stat.value}</p>
-          <p className="text-[#99a1af] text-sm">{stat.label}</p>
+          <p className="text-[var(--app-text-muted)] text-sm">{stat.label}</p>
         </div>
       ))}
     </div>

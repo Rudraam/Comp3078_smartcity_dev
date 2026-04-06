@@ -18,7 +18,7 @@ export default function HotelCard({ hotel, onClick }: HotelCardProps) {
 
   return (
     <div
-      className="bg-[#23262f] rounded-2xl overflow-hidden hover:bg-[#2a2e3a] transition-colors cursor-pointer group"
+      className="bg-[var(--app-card)] rounded-2xl overflow-hidden hover:bg-[var(--app-card-inner)] transition-colors cursor-pointer group"
       onClick={onClick}
     >
       <div className="relative h-48">
@@ -29,7 +29,12 @@ export default function HotelCard({ hotel, onClick }: HotelCardProps) {
             className="w-full h-full object-cover"
           />
         ) : (
-          <div className="w-full h-full bg-[#3a3e4a]" />
+          <div className="w-full h-full bg-[var(--app-card-hover)]" />
+        )}
+        {hotel.isUserSubmission && (
+          <span className="absolute top-3 left-3 bg-purple-600 text-white px-3 py-1 rounded-lg text-xs font-semibold">
+            Community Listing
+          </span>
         )}
         <div className="absolute top-3 right-3 bg-black/60 backdrop-blur-sm px-2 py-1 rounded-lg flex items-center gap-1">
           <StarIcon size="sm" />
@@ -38,10 +43,10 @@ export default function HotelCard({ hotel, onClick }: HotelCardProps) {
       </div>
 
       <div className="p-4">
-        <p className="text-[#99a1af] text-xs mb-1">{hotel.type}</p>
+        <p className="text-[var(--app-text-muted)] text-xs mb-1">{hotel.type}</p>
         <h3 className="text-lg font-semibold mb-2">{hotel.name}</h3>
 
-        <div className="flex items-center gap-2 text-xs text-[#99a1af] mb-3">
+        <div className="flex items-center gap-2 text-xs text-[var(--app-text-muted)] mb-3">
           <div className="flex items-center gap-1">
             <StarIcon size="sm" />
             <span>{hotel.rating}</span>
@@ -50,7 +55,7 @@ export default function HotelCard({ hotel, onClick }: HotelCardProps) {
           <span>{hotel.reviews} reviews</span>
         </div>
 
-        <div className="flex items-center gap-2 text-xs text-[#99a1af] mb-4">
+        <div className="flex items-center gap-2 text-xs text-[var(--app-text-muted)] mb-4">
           <LocationPinIcon className="w-3 h-3" />
           <span>{hotel.location}</span>
         </div>
@@ -59,7 +64,7 @@ export default function HotelCard({ hotel, onClick }: HotelCardProps) {
           {hotel.amenities.slice(0, 3).map((amenity) => (
             <span
               key={amenity}
-              className="bg-[#3a3e4a] text-[#99a1af] px-2 py-1 rounded text-xs"
+              className="bg-[var(--app-card-hover)] text-[var(--app-text-muted)] px-2 py-1 rounded text-xs"
             >
               {amenity}
             </span>
@@ -69,7 +74,7 @@ export default function HotelCard({ hotel, onClick }: HotelCardProps) {
         <div className="flex items-center justify-between gap-2">
           <div>
             <p className="text-xl font-bold">${hotel.pricePerNight}</p>
-            <p className="text-xs text-[#99a1af]">/night</p>
+            <p className="text-xs text-[var(--app-text-muted)]">/night</p>
           </div>
           <div className="flex items-center gap-2">
             <button

@@ -15,7 +15,7 @@ export default function StarRatingFilter({
 }: StarRatingFilterProps) {
   return (
     <div>
-      <label className="block text-sm text-[#99a1af] mb-2">{label}</label>
+      <label className="block text-sm text-[var(--app-text-muted)] mb-2 font-medium">{label}</label>
       <div className="flex items-center gap-1">
         {Array.from({ length: maxStars }, (_, i) => i + 1).map((star) => (
           <button
@@ -33,7 +33,7 @@ export default function StarRatingFilter({
           </button>
         ))}
         {minStars > 0 && (
-          <span className="text-xs text-[#99a1af] ml-2">{minStars}+ stars</span>
+          <span className="text-xs text-[var(--app-text-muted)] ml-2">{minStars}+ stars</span>
         )}
       </div>
     </div>

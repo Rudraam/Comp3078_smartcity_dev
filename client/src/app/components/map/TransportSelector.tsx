@@ -24,15 +24,15 @@ export default function TransportSelector({
               selected === mode.id
                 ? "bg-[#1152d4] text-white"
                 : mode.available
-                ? "bg-[#2a2e3a] hover:bg-[#3a3e4a] text-white"
-                : "bg-[#2a2e3a] text-[#6b7280] cursor-not-allowed opacity-50"
+                ? "bg-[var(--app-card-inner)] hover:bg-[var(--app-card-hover)] text-[var(--app-text)]"
+                : "bg-[var(--app-card-inner)] text-[#6b7280] cursor-not-allowed opacity-50"
             }`}
           >
             <div className="flex flex-col items-center gap-2">
               {mode.icon}
               <span className="text-xs font-medium">{mode.name}</span>
               <span className="text-xs">{mode.duration}</span>
-              <span className="text-[10px] text-[#99a1af]">
+              <span className="text-[10px] text-[var(--app-text-muted)]">
                 {mode.distance}
               </span>
             </div>

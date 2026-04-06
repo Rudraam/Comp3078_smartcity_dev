@@ -42,11 +42,11 @@ export default function RangeInput({
 
   return (
     <div>
-      <label className="block text-sm text-[#99a1af] mb-2">{label}</label>
+      <label className="block text-sm text-[var(--app-text-muted)] mb-2 font-medium">{label}</label>
       <div className="flex items-center gap-2">
-        <div className="flex items-center bg-[#23262f] rounded-lg px-3 py-2 flex-1">
+        <div className="flex items-center bg-[var(--app-card-inner)] border border-[var(--app-border)] rounded-lg px-3 py-2 flex-1 focus-within:border-[#1152d4] transition-colors">
           {prefix && (
-            <span className="text-[#99a1af] text-sm mr-1">{prefix}</span>
+            <span className="text-[var(--app-text-muted)] text-sm mr-1">{prefix}</span>
           )}
           <input
             type="number"
@@ -56,13 +56,13 @@ export default function RangeInput({
             step={step}
             min={min}
             max={max}
-            className="bg-transparent text-white text-sm w-full outline-none placeholder-[#6b7280] [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+            className="bg-transparent text-[var(--app-text)] text-sm w-full outline-none placeholder-[#6b7280] [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
           />
         </div>
         <span className="text-[#6b7280] text-sm">to</span>
-        <div className="flex items-center bg-[#23262f] rounded-lg px-3 py-2 flex-1">
+        <div className="flex items-center bg-[var(--app-card-inner)] border border-[var(--app-border)] rounded-lg px-3 py-2 flex-1 focus-within:border-[#1152d4] transition-colors">
           {prefix && (
-            <span className="text-[#99a1af] text-sm mr-1">{prefix}</span>
+            <span className="text-[var(--app-text-muted)] text-sm mr-1">{prefix}</span>
           )}
           <input
             type="number"
@@ -72,7 +72,7 @@ export default function RangeInput({
             step={step}
             min={min}
             max={max}
-            className="bg-transparent text-white text-sm w-full outline-none placeholder-[#6b7280] [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+            className="bg-transparent text-[var(--app-text)] text-sm w-full outline-none placeholder-[#6b7280] [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
           />
         </div>
       </div>

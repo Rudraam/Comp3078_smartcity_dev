@@ -1,4 +1,5 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Hotel, SlidersHorizontal, Loader2 } from "lucide-react";
 import { useNavigate } from "../hooks/router-compat";
 import PageLayout from "./shared/PageLayout";
@@ -47,30 +48,17 @@ export default function HotelsPage() {
   const [filters, setFilters] = useState<HotelFilters>(defaultHotelFilters);
   const [sortKey, setSortKey] = useState<HotelSortKey>("default");
 
-  const [allData, setAllData] = useState<HotelItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const { data: apiData, isLoading: loading, error: queryError } = useQuery<{ hotels: HotelItem[] }>({
+    queryKey: [`/api/hotels?city=${encodeURIComponent(city)}&limit=50`],
+    queryFn: async () => {
+      const res = await fetch(`/api/hotels?city=${encodeURIComponent(city)}&limit=50`);
+      if (!res.ok) throw new Error("Failed to load hotels");
+      return res.json();
+    },
+  });
 
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    setError("");
-    fetch(`/api/hotels?city=${encodeURIComponent(city)}&limit=20`)
-      .then(res => {
-        if (!res.ok) throw new Error("Failed to load hotels");
-        return res.json();
-      })
-      .then(data => {
-        if (!cancelled) setAllData(data.hotels || []);
-      })
-      .catch(err => {
-        if (!cancelled) setError(err.message);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => { cancelled = true; };
-  }, [city]);
+  const allData = apiData?.hotels ?? [];
+  const error = queryError ? (queryError as Error).message : "";
 
   const featuredHotel = allData.find((h) => h.featured);
   const allHotels = allData.filter((h) => !h.featured);
@@ -120,12 +108,12 @@ export default function HotelsPage() {
         <Hotel className="w-10 h-10" />
         <h1 className="text-5xl font-bold">Hotels</h1>
       </div>
-      <p className="text-[#99a1af] mb-6">Showing results for <span className="text-white font-medium">{city}</span></p>
+      <p className="text-[var(--app-text-muted)] mb-6">Showing results for <span className="text-[var(--app-text)] font-medium">{city}</span></p>
 
       {loading ? (
         <div className="flex flex-col items-center justify-center py-20">
           <Loader2 className="w-10 h-10 animate-spin text-[#1152d4] mb-4" />
-          <p className="text-[#99a1af]">Finding hotels in {city}...</p>
+          <p className="text-[var(--app-text-muted)]">Finding hotels in {city}...</p>
         </div>
       ) : error ? (
         <div className="text-center py-20">
@@ -146,10 +134,10 @@ export default function HotelsPage() {
             />
             <button
               onClick={() => setFiltersOpen(!filtersOpen)}
-              className={`flex items-center gap-2 px-6 py-3 rounded-lg transition-colors ${
+              className={`flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-all ${
                 filtersOpen || activeFilterCount > 0
-                  ? "bg-[#1152d4] text-white"
-                  : "bg-[#23262f] hover:bg-[#2a2e3a] text-white"
+                  ? "bg-[#1152d4] text-white border border-[#1152d4] shadow-sm"
+                  : "bg-[var(--app-bg)] text-[var(--app-text)] border border-[var(--app-border)] hover:border-[#1152d4]/60 hover:text-[#1152d4]"
               }`}
             >
               <SlidersHorizontal className="w-4 h-4" />
@@ -209,43 +197,13 @@ export default function HotelsPage() {
             />
           </FilterSortPanel>
 
-          <section className="mb-8">
-            <h2 className="text-xl font-semibold mb-4">Popular Amenities</h2>
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-              {amenityOptions.map((amenity) => {
-                const isSelected = filters.amenities.includes(amenity);
-                const count = allData.filter(h => h.amenities.includes(amenity)).length;
-                return (
-                  <button
-                    key={amenity}
-                    onClick={() => {
-                      const next = isSelected
-                        ? filters.amenities.filter((a) => a !== amenity)
-                        : [...filters.amenities, amenity];
-                      updateFilter("amenities", next);
-                    }}
-                    className={`p-6 rounded-xl text-center cursor-pointer transition-colors ${
-                      isSelected
-                        ? "bg-[#1152d4]/20 border border-[#1152d4]"
-                        : "bg-[#23262f] hover:bg-[#2a2e3a]"
-                    }`}
-                  >
-                    <div className="w-12 h-12 mx-auto mb-3 bg-[#3a3e4a] rounded-lg" />
-                    <p className="text-sm">{amenity}</p>
-                    <p className="text-xs text-[#99a1af] mt-1">{count} Hotels</p>
-                  </button>
-                );
-              })}
-            </div>
-          </section>
-
           {featuredHotel && <FeaturedHotel hotel={featuredHotel} onClick={() => hotelModal.open(featuredHotel)} />}
 
           <section>
             <div className="flex items-center justify-between gap-2 mb-4">
               <h2 className="text-2xl font-semibold">
                 All Hotels
-                <span className="text-sm text-[#99a1af] font-normal ml-2">
+                <span className="text-sm text-[var(--app-text-muted)] font-normal ml-2">
                   ({processedHotels.length} results)
                 </span>
               </h2>
@@ -258,7 +216,7 @@ export default function HotelsPage() {
             </div>
 
             {processedHotels.length === 0 ? (
-              <div className="text-center py-12 text-[#99a1af]">
+              <div className="text-center py-12 text-[var(--app-text-muted)]">
                 <p className="text-lg mb-2">No hotels found</p>
                 <p className="text-sm">Try adjusting your filters or search query</p>
               </div>

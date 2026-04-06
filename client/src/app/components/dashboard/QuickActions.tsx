@@ -52,14 +52,14 @@ export default function QuickActions() {
           <button
             key={action.label}
             onClick={() => navigate(action.path)}
-            className="bg-[#23262f] hover:bg-[#2a2e3a] transition-colors rounded-xl p-4 flex flex-col items-center gap-2"
+            className="bg-[var(--app-card)] hover:bg-[var(--app-card-inner)] transition-colors rounded-xl p-4 flex flex-col items-center gap-2"
           >
             <div
               className={`w-12 h-12 rounded-lg flex items-center justify-center ${action.color}`}
             >
               {action.icon}
             </div>
-            <span className="text-xs text-[#99a1af]">{action.label}</span>
+            <span className="text-xs text-[var(--app-text-muted)]">{action.label}</span>
           </button>
         ))}
       </div>

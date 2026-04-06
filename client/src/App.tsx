@@ -4,6 +4,9 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { CityProvider } from "./app/hooks/useCityContext";
+import { ThemeProvider } from "./app/hooks/useTheme";
+import { NotificationProvider } from "./app/hooks/useNotifications";
+import { AuthProvider } from "./app/hooks/useAuth";
 import LandingPage from "./app/components/LandingPage";
 import AuthPage from "./app/components/AuthPage";
 import Dashboard from "./app/components/Dashboard";
@@ -12,6 +15,8 @@ import HotelsPage from "./app/components/HotelsPage";
 import EventsPage from "./app/components/EventsPage";
 import MapPage from "./app/components/MapPage";
 import ProfilePage from "./app/components/ProfilePage";
+import AdminDashboard from "./app/components/AdminDashboard";
+import SubmitListing from "./app/components/SubmitListing";
 import ScrollToTop from "./app/components/ScrollToTop";
 
 function Router() {
@@ -25,6 +30,8 @@ function Router() {
       <Route path="/events" component={EventsPage} />
       <Route path="/map" component={MapPage} />
       <Route path="/profile" component={ProfilePage} />
+      <Route path="/admin" component={AdminDashboard} />
+      <Route path="/submit" component={SubmitListing} />
       <Route>
         <div className="min-h-screen bg-[#1a1d26] text-white flex items-center justify-center">
           <div className="text-center">
@@ -39,16 +46,22 @@ function Router() {
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <CityProvider>
-          <ScrollToTop>
-            <Router />
-          </ScrollToTop>
-        </CityProvider>
-        <Toaster />
-      </TooltipProvider>
-    </QueryClientProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <NotificationProvider>
+          <QueryClientProvider client={queryClient}>
+            <TooltipProvider>
+              <CityProvider>
+                <ScrollToTop>
+                  <Router />
+                </ScrollToTop>
+              </CityProvider>
+              <Toaster />
+            </TooltipProvider>
+          </QueryClientProvider>
+        </NotificationProvider>
+      </AuthProvider>
+    </ThemeProvider>
   );
 }
 

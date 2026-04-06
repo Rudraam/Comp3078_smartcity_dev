@@ -3,13 +3,29 @@ import { createServer, type Server } from "http";
 import session from "express-session";
 import { storage } from "./storage";
 import { getCityAssistantResponse } from "./openai";
-import { updateProfileSchema } from "@shared/schema";
+import { updateProfileSchema, insertSubmissionSchema, insertReviewSchema } from "@shared/schema";
 import bcrypt from "bcrypt";
 
 declare module "express-session" {
   interface SessionData {
     userId?: string;
+    role?: string;
   }
+}
+
+function requireAuth(req: any, res: any, next: any) {
+  if (!req.session?.userId) return res.status(401).json({ error: "Not authenticated" });
+  next();
+}
+
+function requireRole(...roles: string[]) {
+  return (req: any, res: any, next: any) => {
+    if (!req.session?.userId) return res.status(401).json({ error: "Not authenticated" });
+    if (!roles.includes(req.session?.role ?? "regular")) {
+      return res.status(403).json({ error: "Insufficient permissions" });
+    }
+    next();
+  };
 }
 
 const SALT_ROUNDS = 12;
@@ -45,6 +61,12 @@ function seededRating(name: string): number {
 
 function seededPrice(name: string, max = 4): number {
   return (hashCode(name) % max) + 1;
+}
+
+function cityMatches(subCity: string, queryCity: string): boolean {
+  const a = subCity.toLowerCase().trim().split(",")[0].trim();
+  const b = queryCity.toLowerCase().trim().split(",")[0].trim();
+  return a === b || a.includes(b) || b.includes(a);
 }
 
 function distanceKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
@@ -124,6 +146,7 @@ interface GeoResult {
   name: string;
   displayName: string;
   country: string;
+  countryCode: string;
   admin1: string;
 }
 
@@ -184,6 +207,7 @@ async function geocodeCity(cityName: string): Promise<GeoResult | null> {
     name: best.name,
     displayName: nameParts.join(", "),
     country: best.country || "",
+    countryCode: (best.country_code || "").toUpperCase(),
     admin1: best.admin1 || "",
   };
 }
@@ -205,6 +229,7 @@ async function geocodeCitySuggestions(query: string): Promise<GeoResult[]> {
       name: r.name,
       displayName: nameParts.join(", "),
       country: r.country || "",
+      countryCode: (r.country_code || "").toUpperCase(),
       admin1: r.admin1 || "",
     };
   });
@@ -247,12 +272,18 @@ async function fetchWeatherData(lat: number, lon: number) {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  app.set("trust proxy", 1);
   app.use(
     session({
       secret: process.env.SESSION_SECRET || "smart-city-session-secret",
       resave: false,
       saveUninitialized: false,
-      cookie: { secure: false, maxAge: 7 * 24 * 60 * 60 * 1000 },
+      cookie: {
+        secure: process.env.NODE_ENV === "production",
+        httpOnly: true,
+        sameSite: "lax",
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+      },
     })
   );
   app.get("/api/weather", async (req, res) => {
@@ -312,15 +343,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Username already exists" });
       }
 
+      const adminCount = await storage.getAdminCount();
+      const role = adminCount === 0 ? "admin" : "regular";
+
       const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
       const user = await storage.createUser({ 
         username, 
         email: email || "", 
-        password: hashedPassword 
+        password: hashedPassword,
+        role,
       });
       
       req.session.userId = user.id;
-      res.status(201).json({ id: user.id, username: user.username });
+      req.session.role = user.role;
+      res.status(201).json({ id: user.id, username: user.username, role: user.role });
     } catch (error) {
       console.error("Registration error:", error);
       res.status(500).json({ error: "Registration failed" });
@@ -346,7 +382,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       req.session.userId = user.id;
-      res.json({ id: user.id, username: user.username });
+      req.session.role = user.role;
+      res.json({ id: user.id, username: user.username, role: user.role });
     } catch (error) {
       console.error("Login error:", error);
       res.status(500).json({ error: "Login failed" });
@@ -359,6 +396,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!userId) return res.status(401).json({ error: "Not authenticated" });
       const user = await storage.getUser(userId);
       if (!user) return res.status(404).json({ error: "User not found" });
+      req.session.role = user.role;
       const { password, ...profile } = user;
       res.json(profile);
     } catch (error) {
@@ -400,7 +438,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const geo = await geocodeCity(city);
       if (!geo) return res.status(404).json({ error: "City not found" });
 
-      const query = `[out:json][timeout:10];(node["amenity"="restaurant"](around:5000,${geo.lat},${geo.lon}););out body ${limit + 5};`;
+      const query = `[out:json][timeout:25];(node["amenity"="restaurant"](around:10000,${geo.lat},${geo.lon}););out body ${limit + 10};`;
       let elements = await queryOverpass(query);
 
       if (elements.length === 0) {
@@ -462,7 +500,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
         };
       });
 
-      res.json({ city: geo.name, displayName: geo.displayName, restaurants });
+      // Merge in approved user-submitted restaurants for this city
+      const approvedRestaurantSubs = await storage.getApprovedSubmissions("restaurant");
+      const subRestaurants = approvedRestaurantSubs
+        .filter(s => cityMatches(s.city, city))
+        .map(s => ({
+          id: `sub_${s.id}`,
+          name: s.name,
+          category: s.additionalInfo || s.description || "Restaurant",
+          rating: 0,
+          reviews: 0,
+          priceLevel: 1,
+          distance: "",
+          hours: s.phone ? `Call: ${s.phone}` : "Contact for hours",
+          image: undefined,
+          featured: false,
+          openNow: undefined,
+          lat: undefined,
+          lon: undefined,
+          isUserSubmission: true,
+          address: s.address,
+          website: s.website,
+          description: s.description,
+        }));
+
+      res.json({ city: geo.name, displayName: geo.displayName, restaurants: [...restaurants, ...subRestaurants] });
     } catch (error: any) {
       console.error("[API] Restaurants error:", error.message || error);
       res.status(500).json({ error: "Failed to fetch restaurants" });
@@ -482,7 +544,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const typeNames = ["Boutique Hotel", "Business Hotel", "Luxury Hotel", "City Hotel", "Modern Hotel", "Resort"];
 
       let elements: OsmElement[] = [];
-      const overpassQuery = `[out:json][timeout:8];(node["tourism"="hotel"](around:8000,${geo.lat},${geo.lon});way["tourism"="hotel"](around:8000,${geo.lat},${geo.lon}););out center ${limit + 5};`;
+      const overpassQuery = `[out:json][timeout:25];(node["tourism"="hotel"](around:15000,${geo.lat},${geo.lon});way["tourism"="hotel"](around:15000,${geo.lat},${geo.lon}););out center ${limit + 10};`;
       elements = await queryOverpass(overpassQuery);
 
       if (elements.length === 0) {
@@ -540,7 +602,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
         };
       });
 
-      res.json({ city: geo.name, displayName: geo.displayName, hotels });
+      // Merge in approved user-submitted hotels for this city
+      const approvedHotelSubs = await storage.getApprovedSubmissions("hotel");
+      const subHotels = approvedHotelSubs
+        .filter(s => cityMatches(s.city, city))
+        .map(s => ({
+          id: `sub_${s.id}`,
+          name: s.name,
+          type: s.additionalInfo || "Boutique Hotel",
+          rating: 0,
+          reviews: 0,
+          stars: 0,
+          location: s.address || s.city,
+          distance: "",
+          pricePerNight: 0,
+          amenities: [],
+          featured: false,
+          image: undefined,
+          lat: undefined,
+          lon: undefined,
+          isUserSubmission: true,
+          address: s.address,
+          website: s.website,
+          description: s.description,
+        }));
+
+      res.json({ city: geo.name, displayName: geo.displayName, hotels: [...hotels, ...subHotels] });
     } catch (error: any) {
       console.error("[API] Hotels error:", error.message || error);
       res.status(500).json({ error: "Failed to fetch hotels" });
@@ -550,93 +637,226 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/events", async (req, res) => {
     try {
       const city = req.query.city as string;
-      const limit = parseInt(req.query.limit as string) || 10;
+      const limit = parseInt(req.query.limit as string) || 20;
       if (!city) return res.status(400).json({ error: "City parameter required" });
 
       const geo = await geocodeCity(city);
       if (!geo) return res.status(404).json({ error: "City not found" });
 
-      const query = `[out:json][timeout:10];(node["tourism"="attraction"](around:8000,${geo.lat},${geo.lon});node["amenity"="theatre"](around:8000,${geo.lat},${geo.lon});node["amenity"="cinema"](around:8000,${geo.lat},${geo.lon});node["tourism"="museum"](around:8000,${geo.lat},${geo.lon});node["leisure"="stadium"](around:8000,${geo.lat},${geo.lon});node["amenity"="arts_centre"](around:8000,${geo.lat},${geo.lon});way["tourism"="attraction"](around:8000,${geo.lat},${geo.lon});way["tourism"="museum"](around:8000,${geo.lat},${geo.lon});way["amenity"="theatre"](around:8000,${geo.lat},${geo.lon}););out center ${limit + 5};`;
-      let elements = await queryOverpass(query);
-
-      if (elements.length === 0) {
-        try {
-          const types = ["museum", "theatre", "attraction", "cinema", "stadium"];
-          const searches = types.map(t =>
-            fetch(`https://nominatim.openstreetmap.org/search?q=${t}+in+${encodeURIComponent(city)}&format=json&limit=4&addressdetails=1`, { headers: { "User-Agent": "SmartCityExplorer/1.0" } })
-              .then(r => r.ok ? r.json() : [])
-              .catch(() => [])
-          );
-          const results = await Promise.all(searches);
-          const seen = new Set<string>();
-          for (const places of results) {
-            for (const p of places) {
-              if (p.name && !seen.has(p.name)) {
-                seen.add(p.name);
-                elements.push({
-                  type: "node",
-                  id: p.place_id,
-                  lat: parseFloat(p.lat),
-                  lon: parseFloat(p.lon),
-                  tags: {
-                    name: p.name,
-                    tourism: p.type === "museum" ? "museum" : p.type === "attraction" ? "attraction" : undefined,
-                    amenity: p.type === "theatre" ? "theatre" : p.type === "cinema" ? "cinema" : undefined,
-                    leisure: p.type === "stadium" ? "stadium" : undefined,
-                    "addr:street": p.address?.road || "",
-                    "addr:housenumber": p.address?.house_number || "",
-                  },
-                } as OsmElement);
-              }
-            }
-          }
-        } catch {}
+      const TM_KEY = process.env.TICKETMASTER_API_KEY;
+      if (!TM_KEY) {
+        return res.status(200).json({ city, displayName: geo.displayName, events: [], note: "Events unavailable — API key not configured" });
       }
 
-      const amenityToCategory: Record<string, string> = {
-        theatre: "Theater", cinema: "Cinema", arts_centre: "Art",
-        museum: "Museum", attraction: "Attraction", stadium: "Sports",
+      // Map country code to the correct Ticketmaster regional domain
+      const TM_DOMAIN: Record<string, string> = {
+        CA: "https://www.ticketmaster.ca",
+        GB: "https://www.ticketmaster.co.uk",
+        IE: "https://www.ticketmaster.ie",
+        AU: "https://www.ticketmaster.com.au",
+        NZ: "https://www.ticketmaster.co.nz",
+        MX: "https://www.ticketmaster.com.mx",
+        DE: "https://www.ticketmaster.de",
+        FR: "https://www.ticketmaster.fr",
+        ES: "https://www.ticketmaster.es",
+        NL: "https://www.ticketmaster.nl",
+        BE: "https://www.ticketmaster.be",
+        SE: "https://www.ticketmaster.se",
+        NO: "https://www.ticketmaster.no",
+        DK: "https://www.ticketmaster.dk",
+        FI: "https://www.ticketmaster.fi",
+        PL: "https://www.ticketmaster.pl",
       };
-      const categoryToBadge: Record<string, string> = {
-        Theater: "Live Show", Cinema: "Screening", Museum: "Culture",
-        Art: "Exhibition", Attraction: "Must See", Sports: "Game Day",
+      const tmDomain = TM_DOMAIN[geo.countryCode ?? ""] ?? "https://www.ticketmaster.com";
+
+      // Segment ID → human-readable category
+      const SEGMENT_ID_MAP: Record<string, string> = {
+        "KZFzniwnSyZfZ7v7nJ": "Music",
+        "KZFzniwnSyZfZ7v7nE": "Sports",
+        "KZFzniwnSyZfZ7v7na": "Arts & Theatre",
+        "KZFzniwnSyZfZ7v7nn": "Film",
+        "KZFzniwnSyZfZ7v7n1": "Miscellaneous",
       };
 
-      const now = new Date();
-      const timeSlots = [
-        "7:00 PM - 10:00 PM", "6:00 PM - 11:00 PM", "8:00 PM - 10:30 PM",
-        "10:00 AM - 6:00 PM", "9:00 AM - 5:00 PM", "12:00 PM - 8:00 PM",
+      const tmApiUrl = new URL("https://app.ticketmaster.com/discovery/v2/events.json");
+      tmApiUrl.searchParams.set("apikey", TM_KEY);
+      tmApiUrl.searchParams.set("latlong", `${geo.lat},${geo.lon}`);
+      tmApiUrl.searchParams.set("radius", "100");
+      tmApiUrl.searchParams.set("unit", "km");
+      tmApiUrl.searchParams.set("size", "200");
+      tmApiUrl.searchParams.set("sort", "date,asc");
+      tmApiUrl.searchParams.set("includeTest", "no");
+      // Only return future events — format: YYYY-MM-DDTHH:mm:ssZ
+      const nowUtc = new Date().toISOString().replace(/\.\d{3}Z$/, "Z");
+      tmApiUrl.searchParams.set("startDateTime", nowUtc);
+      if (geo.countryCode) tmApiUrl.searchParams.set("countryCode", geo.countryCode);
+
+      const tmApiResp = await fetch(tmApiUrl.toString(), { headers: { Accept: "application/json" } });
+      if (!tmApiResp.ok) {
+        const errText = await tmApiResp.text();
+        console.error("[Ticketmaster] API error:", tmApiResp.status, errText);
+        return res.status(502).json({ error: "Failed to fetch events from Ticketmaster" });
+      }
+
+      const tmApiData = await tmApiResp.json();
+      const allRaw: any[] = tmApiData?._embedded?.events ?? [];
+
+      // Patterns that indicate internal/private events not meant for public purchase
+      const INTERNAL_PATTERNS = [
+        /^this is not a (game )?ticket/i,
+        /license fee/i,
+        /subscription/i,
+        /horsemen/i,
+        /experiences?$/i,
+        /lounge$/i,
+        /test game/i,
+        /\bvip\b.*\bpackage\b/i,
       ];
+      const isInternalEvent = (name: string) =>
+        INTERNAL_PATTERNS.some((re) => re.test(name));
 
-      const events = elements.slice(0, limit).map((el, i) => {
-        const name = el.tags?.name || "Event";
-        const amenity = el.tags?.amenity || el.tags?.tourism || el.tags?.leisure || "attraction";
-        const category = amenityToCategory[amenity] || "Entertainment";
-        const futureDate = new Date(now);
-        futureDate.setDate(futureDate.getDate() + (hashCode(name) % 28) + 1);
-        const dateStr = futureDate.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-        const addr = el.tags?.["addr:street"] ? `${el.tags["addr:housenumber"] || ""} ${el.tags["addr:street"]}`.trim() : geo.name;
-        const lat = el.lat ?? el.center?.lat ?? geo.lat;
-        const lon = el.lon ?? el.center?.lon ?? geo.lon;
+      // Keep events that look like real public events; give them all a URL
+      const goodEvents = allRaw.filter((ev: any) => !isInternalEvent(ev.name || ""));
+      const rawEvents = goodEvents.slice(0, limit);
+
+      const events = rawEvents.map((ev: any, i: number) => {
+        const name: string = ev.name || "Event";
+
+        // Resolve category: check segment/genre by ID first (most reliable), then fall back to name
+        const cls = ev.classifications?.[0];
+        const segmentId: string = cls?.segment?.id || "";
+        const segmentName: string = cls?.segment?.name || "";
+        const genreName: string = cls?.genre?.name || "";
+        const subGenreName: string = cls?.subGenre?.name || "";
+
+        let category: string;
+        if (SEGMENT_ID_MAP[segmentId]) {
+          // Known TM segment ID — use genre if specific, else segment
+          const resolvedSegment = SEGMENT_ID_MAP[segmentId];
+          category = (genreName && genreName !== "Undefined" && genreName !== resolvedSegment)
+            ? genreName
+            : resolvedSegment;
+        } else if (segmentName && segmentName !== "Undefined") {
+          category = (genreName && genreName !== "Undefined" && genreName !== segmentName)
+            ? genreName
+            : segmentName;
+        } else if (genreName && genreName !== "Undefined") {
+          category = genreName;
+        } else if (subGenreName && subGenreName !== "Undefined") {
+          category = subGenreName;
+        } else {
+          // No classification data at all — make an educated guess from the name
+          const lower = name.toLowerCase();
+          if (/\bfilm\b|w\/e\.s\.t\.|english subtitles|subtitles|cinema|movie\b/.test(lower)) category = "Film";
+          else if (/\btour\b.*\b(stadium|arena|centre|center|ground)\b|\b(stadium|arena)\b.*\btour\b/.test(lower)) category = "Sports";
+          else if (/\bcomedy\b/.test(lower)) category = "Comedy";
+          else if (/\btheatre\b|\btheater\b|\bmusical\b|\bopera\b|\bballet\b/.test(lower)) category = "Arts & Theatre";
+          else if (/\bconcert\b|\bfestival\b/.test(lower)) category = "Music";
+          else category = "Live Event";
+        }
+
+        const segment = segmentName || SEGMENT_ID_MAP[segmentId] || "Live Event";
+
+        const dateObj = ev.dates?.start?.localDate ? new Date(ev.dates.start.localDate) : null;
+        const dateStr = dateObj
+          ? dateObj.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+          : "TBA";
+
+        const localTime: string = ev.dates?.start?.localTime ?? "";
+        let timeStr = "TBA";
+        if (localTime) {
+          const [h, m] = localTime.split(":").map(Number);
+          const ampm = h >= 12 ? "PM" : "AM";
+          const hour12 = h % 12 || 12;
+          timeStr = `${hour12}:${String(m).padStart(2, "0")} ${ampm}`;
+        }
+
+        const venue = ev._embedded?.venues?.[0];
+        const venueName: string = venue?.name || geo.name;
+        const venueCity: string = venue?.city?.name || geo.name;
+        const location = venueName !== venueCity ? `${venueName}, ${venueCity}` : venueName;
+        const lat: number = parseFloat(venue?.location?.latitude) || geo.lat;
+        const lon: number = parseFloat(venue?.location?.longitude) || geo.lon;
+
+        const priceRanges = ev.priceRanges;
+        let price: number | "Free" | null = null;
+        if (priceRanges && priceRanges.length > 0) {
+          const min = priceRanges[0].min;
+          price = min > 0 ? Math.round(min) : "Free";
+        }
+
+        const tmImage = ev.images?.find((img: any) => img.ratio === "16_9" && img.width >= 640)?.url
+          || ev.images?.[0]?.url
+          || EVENT_IMAGES[i % EVENT_IMAGES.length];
+
+        // Build URL: prefer direct event URL, then attraction page, then country-specific TM search
+        const attractionUrl: string = ev._embedded?.attractions?.[0]?.url || "";
+        let tmUrl2: string;
+        if (ev.url && ev.url.startsWith("http")) {
+          tmUrl2 = ev.url;
+        } else if (attractionUrl && attractionUrl.startsWith("http")) {
+          tmUrl2 = attractionUrl;
+        } else {
+          // Include venue name in search for specificity (e.g. "Levity TIFF Bell Lightbox")
+          const venueForSearch = venue?.name ? ` ${venue.name}` : "";
+          const searchQ = encodeURIComponent(`${name}${venueForSearch}`);
+          tmUrl2 = `${tmDomain}/search?q=${searchQ}`;
+        }
+
+        const badgeMap: Record<string, string> = {
+          Music: "Live Music", Sports: "Game Day", "Arts & Theatre": "Live Show",
+          Film: "Screening", Miscellaneous: "Event", Comedy: "Comedy Night",
+          "Live Event": "Live Event", Theatre: "Live Show", Theater: "Live Show",
+          Rock: "Live Music", Pop: "Live Music", "Hip-Hop": "Live Music",
+          "R&B": "Live Music", Country: "Live Music", Jazz: "Live Music",
+          Classical: "Live Music", Electronic: "Live Music", Folk: "Live Music",
+          Basketball: "Game Day", Football: "Game Day", Hockey: "Game Day",
+          Baseball: "Game Day", Soccer: "Game Day", Tennis: "Game Day",
+          Wrestling: "Game Day", Boxing: "Game Day",
+        };
+        const badge = i === 0 ? "Featured" : (badgeMap[category] || badgeMap[segment] || undefined);
 
         return {
-          id: String(el.id),
+          id: ev.id || String(i),
           name,
           category,
           date: dateStr,
-          time: timeSlots[hashCode(name) % timeSlots.length],
-          location: addr,
-          attendees: (hashCode(name) % 4000) + 200,
-          price: (hashCode(name) % 3 === 0) ? ("Free" as const) : ((hashCode(name) % 130) + 15),
+          time: timeStr,
+          location,
+          attendees: (hashCode(name) % 8000) + 500,
+          price,
           featured: i === 0,
-          image: EVENT_IMAGES[i % EVENT_IMAGES.length],
-          badge: i === 0 ? "Featured" : (categoryToBadge[category] || undefined),
+          image: tmImage,
+          badge,
           lat,
           lon,
+          url: tmUrl2,
         };
       });
 
-      res.json({ city: geo.name, displayName: geo.displayName, events });
+      // Merge in approved user-submitted events for this city
+      const approvedEventSubs = await storage.getApprovedSubmissions("event");
+      const subEvents = approvedEventSubs
+        .filter(s => cityMatches(s.city, city))
+        .map(s => ({
+          id: `sub_${s.id}`,
+          name: s.name,
+          category: s.additionalInfo || "Community Event",
+          date: "TBA",
+          time: "TBA",
+          location: s.address || s.city,
+          attendees: 0,
+          price: "Free" as const,
+          featured: false,
+          image: undefined,
+          lat: undefined,
+          lon: undefined,
+          isUserSubmission: true,
+          url: s.website || undefined,
+          description: s.description,
+        }));
+
+      res.json({ city: geo.name, displayName: geo.displayName, events: [...events, ...subEvents] });
     } catch (error: any) {
       console.error("[API] Events error:", error.message || error);
       res.status(500).json({ error: "Failed to fetch events" });
@@ -664,6 +884,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(geo);
     } catch (error: any) {
       res.status(500).json({ error: "Geocoding failed" });
+    }
+  });
+
+  app.get("/api/reverse-geocode", async (req, res) => {
+    try {
+      const lat = req.query.lat as string;
+      const lon = req.query.lon as string;
+      if (!lat || !lon) return res.status(400).json({ error: "lat and lon required" });
+
+      const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=10&addressdetails=1`;
+      const resp = await fetch(url, { headers: { "User-Agent": "SmartCityExplorer/1.0" } });
+      if (!resp.ok) return res.status(502).json({ error: "Reverse geocoding failed" });
+      const data = await resp.json();
+
+      const address = data.address || {};
+      const cityName = address.city || address.town || address.village || address.municipality || address.county || data.name || "Toronto";
+      const state = address.state || address.region || "";
+      const country = address.country || "";
+      const displayName = [cityName, state, country].filter(Boolean).join(", ");
+
+      res.json({ name: cityName, displayName, lat: parseFloat(lat), lon: parseFloat(lon) });
+    } catch (error: any) {
+      res.status(500).json({ error: "Reverse geocoding failed" });
     }
   });
 
@@ -717,6 +960,150 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("[API] Route error:", error.message || error);
       res.status(500).json({ error: "Failed to fetch route" });
+    }
+  });
+
+  app.get("/api/reviews/mine", requireAuth, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const items = await storage.getReviewsByUser(userId);
+      res.json(items);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch your reviews" });
+    }
+  });
+
+  app.get("/api/reviews", async (req, res) => {
+    try {
+      const { placeId, placeType } = req.query as { placeId: string; placeType: string };
+      if (!placeId || !placeType) return res.status(400).json({ error: "placeId and placeType required" });
+      const items = await storage.getReviewsByPlace(placeId, placeType);
+      res.json(items);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch reviews" });
+    }
+  });
+
+  app.post("/api/reviews", requireAuth, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const user = await storage.getUser(userId);
+      if (!user) return res.status(404).json({ error: "User not found" });
+
+      const parsed = insertReviewSchema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ error: "Invalid review data", details: parsed.error.errors });
+
+      const existing = await storage.getUserReviewForPlace(userId, parsed.data.placeId, parsed.data.placeType);
+      if (existing) return res.status(409).json({ error: "You have already reviewed this place" });
+
+      const review = await storage.createReview(userId, user.username, {
+        placeId: parsed.data.placeId,
+        placeName: parsed.data.placeName ?? "",
+        placeType: parsed.data.placeType,
+        rating: parsed.data.rating,
+        comment: parsed.data.comment ?? "",
+      });
+      res.status(201).json(review);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to create review" });
+    }
+  });
+
+  app.delete("/api/reviews/:id", requireAuth, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const deleted = await storage.deleteReview(req.params.id, userId);
+      if (!deleted) return res.status(404).json({ error: "Review not found or not owned by you" });
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete review" });
+    }
+  });
+
+  app.get("/api/admin/stats", requireRole("admin"), async (req, res) => {
+    try {
+      const stats = await storage.getStats();
+      res.json(stats);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch stats" });
+    }
+  });
+
+  app.get("/api/admin/users", requireRole("admin"), async (req, res) => {
+    try {
+      const allUsers = await storage.getAllUsers();
+      const safe = allUsers.map(({ password, ...u }) => u);
+      res.json(safe);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch users" });
+    }
+  });
+
+  app.put("/api/admin/users/:id/role", requireRole("admin"), async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { role } = req.body;
+      if (!["regular", "commercial", "admin"].includes(role)) {
+        return res.status(400).json({ error: "Invalid role" });
+      }
+      const updated = await storage.updateUserRole(id, role);
+      if (!updated) return res.status(404).json({ error: "User not found" });
+      const { password, ...safe } = updated;
+      res.json(safe);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update role" });
+    }
+  });
+
+  app.get("/api/admin/submissions", requireRole("admin"), async (req, res) => {
+    try {
+      const subs = await storage.getAllSubmissions();
+      res.json(subs);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch submissions" });
+    }
+  });
+
+  app.put("/api/admin/submissions/:id", requireRole("admin"), async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { status, adminNote } = req.body;
+      if (!["approved", "rejected", "pending"].includes(status)) {
+        return res.status(400).json({ error: "Invalid status" });
+      }
+      const reviewedBy = req.session.userId!;
+      const updated = await storage.updateSubmission(id, status, adminNote ?? "", reviewedBy);
+      if (!updated) return res.status(404).json({ error: "Submission not found" });
+      res.json(updated);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update submission" });
+    }
+  });
+
+  app.post("/api/commercial/submissions", requireRole("commercial", "admin"), async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const parsed = insertSubmissionSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Invalid submission data", details: parsed.error.errors });
+      }
+      const sub = await storage.createSubmission(userId, parsed.data);
+      res.status(201).json(sub);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to create submission" });
+    }
+  });
+
+  app.get("/api/commercial/submissions", requireRole("commercial", "admin"), async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const role = req.session.role;
+      const subs = role === "admin"
+        ? await storage.getAllSubmissions()
+        : await storage.getSubmissionsByUser(userId);
+      res.json(subs);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch submissions" });
     }
   });
 

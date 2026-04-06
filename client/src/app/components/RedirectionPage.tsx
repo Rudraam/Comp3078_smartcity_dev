@@ -32,10 +32,10 @@ export default function RedirectionPage() {
           </div>
         </motion.div>
 
-        <h1 className="text-3xl md:text-4xl font-bold text-white mb-4">
+        <h1 className="text-3xl md:text-4xl font-bold text-[var(--app-text)] mb-4">
           Redirecting You
         </h1>
-        <p className="text-[#99a1af] mb-8">
+        <p className="text-[var(--app-text-muted)] mb-8">
           You're being redirected to an external service. This feature connects
           to a third-party platform for bookings, reservations, and more.
         </p>
@@ -66,7 +66,7 @@ export default function RedirectionPage() {
                 transition={{ duration: 5, ease: "linear" }}
               />
             </svg>
-            <span className="absolute inset-0 flex items-center justify-center text-2xl font-bold text-white">
+            <span className="absolute inset-0 flex items-center justify-center text-2xl font-bold text-[var(--app-text)]">
               {countdown}
             </span>
           </div>
@@ -78,7 +78,7 @@ export default function RedirectionPage() {
         </div>
 
         {/* Progress bar */}
-        <div className="w-full bg-[#23262f] rounded-full h-1.5 mb-8 overflow-hidden">
+        <div className="w-full bg-[var(--app-card)] rounded-full h-1.5 mb-8 overflow-hidden">
           <motion.div
             className="bg-[#1152d4] h-full rounded-full"
             initial={{ width: "0%" }}
@@ -90,7 +90,7 @@ export default function RedirectionPage() {
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
           <button
             onClick={() => navigate(-1)}
-            className="bg-[#23262f] hover:bg-[#2a2e3a] transition-colors text-white px-6 py-3 rounded-lg font-medium flex items-center justify-center gap-2"
+            className="bg-[var(--app-card)] hover:bg-[var(--app-card-inner)] transition-colors text-[var(--app-text)] px-6 py-3 rounded-lg font-medium flex items-center justify-center gap-2"
           >
             <ArrowLeft className="w-4 h-4" />
             Go Back

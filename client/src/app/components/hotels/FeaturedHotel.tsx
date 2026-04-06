@@ -25,7 +25,7 @@ export default function FeaturedHotel({ hotel, onClick }: FeaturedHotelProps) {
       </div>
 
       <div
-        className="bg-[#23262f] rounded-2xl overflow-hidden flex flex-col lg:flex-row cursor-pointer hover:bg-[#2a2e3a] transition-colors"
+        className="bg-[var(--app-card)] rounded-2xl overflow-hidden flex flex-col lg:flex-row cursor-pointer hover:bg-[var(--app-card-inner)] transition-colors"
         onClick={onClick}
       >
         <div className="lg:w-1/3 h-64 lg:h-auto relative">
@@ -36,20 +36,20 @@ export default function FeaturedHotel({ hotel, onClick }: FeaturedHotelProps) {
               className="w-full h-full object-cover"
             />
           ) : (
-            <div className="w-full h-full bg-[#3a3e4a]" />
+            <div className="w-full h-full bg-[var(--app-card-hover)]" />
           )}
           <span className="absolute top-4 left-4 bg-[#1152d4] text-white px-4 py-1 rounded-lg text-sm font-semibold">
             Featured
           </span>
-          <span className="absolute bottom-4 left-4 bg-black/60 backdrop-blur-sm text-white px-3 py-1 rounded-lg text-sm font-semibold">
+          <span className="absolute bottom-4 left-4 bg-black/60 backdrop-blur-sm text-[var(--app-text)] px-3 py-1 rounded-lg text-sm font-semibold">
             3 rooms left
           </span>
         </div>
 
         <div className="flex-1 p-6 flex flex-col">
-          <p className="text-[#99a1af] text-sm mb-2">{hotel.type}</p>
+          <p className="text-[var(--app-text-muted)] text-sm mb-2">{hotel.type}</p>
           <h3 className="text-3xl font-bold mb-3">{hotel.name}</h3>
-          <p className="text-[#99a1af] mb-4 flex-1">
+          <p className="text-[var(--app-text-muted)] mb-4 flex-1">
             Experience exceptional luxury in the heart of downtown. Featuring
             modern amenities, stunning city views, and world-class service.
           </p>
@@ -58,12 +58,12 @@ export default function FeaturedHotel({ hotel, onClick }: FeaturedHotelProps) {
             <div className="flex items-center gap-1">
               <StarIcon size="md" />
               <span className="font-semibold">{hotel.rating}</span>
-              <span className="text-[#99a1af]">
+              <span className="text-[var(--app-text-muted)]">
                 ({hotel.reviews} reviews)
               </span>
             </div>
-            <span className="text-[#99a1af]">&bull;</span>
-            <div className="flex items-center gap-2 text-[#99a1af]">
+            <span className="text-[var(--app-text-muted)]">&bull;</span>
+            <div className="flex items-center gap-2 text-[var(--app-text-muted)]">
               <LocationPinIcon className="w-4 h-4" />
               {hotel.location}
             </div>
@@ -73,7 +73,7 @@ export default function FeaturedHotel({ hotel, onClick }: FeaturedHotelProps) {
             {hotel.amenities.map((amenity) => (
               <span
                 key={amenity}
-                className="bg-[#3a3e4a] text-[#99a1af] px-3 py-1 rounded-lg text-xs"
+                className="bg-[var(--app-card-hover)] text-[var(--app-text-muted)] px-3 py-1 rounded-lg text-xs"
               >
                 {amenity}
               </span>
@@ -81,9 +81,9 @@ export default function FeaturedHotel({ hotel, onClick }: FeaturedHotelProps) {
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
-            <div className="bg-[#3a3e4a] px-4 py-3 rounded-lg">
+            <div className="bg-[var(--app-card-hover)] px-4 py-3 rounded-lg">
               <p className="text-2xl font-bold">${hotel.pricePerNight}</p>
-              <p className="text-xs text-[#99a1af]">per night</p>
+              <p className="text-xs text-[var(--app-text-muted)]">per night</p>
             </div>
 
             <a
@@ -101,7 +101,7 @@ export default function FeaturedHotel({ hotel, onClick }: FeaturedHotelProps) {
               target="_blank"
               rel="noopener noreferrer"
               onClick={(e) => e.stopPropagation()}
-              className="bg-[#3a3e4a] hover:bg-[#4a4e5a] transition-colors text-white px-6 py-3 rounded-lg font-medium flex items-center gap-2"
+              className="bg-[var(--app-card-hover)] hover:bg-[var(--app-card-hover)] transition-colors text-[var(--app-text)] px-6 py-3 rounded-lg font-medium flex items-center gap-2"
             >
               View Rooms
               <ExternalLink className="w-3 h-3" />
@@ -116,7 +116,7 @@ export default function FeaturedHotel({ hotel, onClick }: FeaturedHotelProps) {
                 }
                 navigate(`/map?${params.toString()}`);
               }}
-              className="bg-[#3a3e4a] hover:bg-[#4a4e5a] transition-colors text-white px-6 py-3 rounded-lg font-medium"
+              className="bg-[var(--app-card-hover)] hover:bg-[var(--app-card-hover)] transition-colors text-[var(--app-text)] px-6 py-3 rounded-lg font-medium"
             >
               Directions
             </button>

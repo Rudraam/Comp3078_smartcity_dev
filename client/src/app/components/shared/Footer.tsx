@@ -21,31 +21,31 @@ export default function Footer() {
   const navigate = useNavigate();
 
   return (
-    <footer className="bg-[#13151c] border-t border-[#2a2e3a] mt-12">
+    <footer className="bg-[#13151c] border-t border-[var(--app-card-inner)] mt-12">
       <div className="max-w-[1400px] mx-auto px-6 py-12">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           {/* Brand */}
           <div>
             <h3
-              className="text-xl font-bold text-white mb-4 cursor-pointer hover:text-[#1152d4] transition-colors"
+              className="text-xl font-bold text-white mb-4 cursor-pointer hover:text-[#6b9ef5] transition-colors"
               onClick={() => navigate("/dashboard")}
             >
               Smart City Dashboard
             </h3>
-            <p className="text-[#99a1af] text-sm mb-4">
+            <p className="text-[var(--app-text-muted)] text-sm mb-4">
               Your comprehensive platform for exploring and navigating smart
               cities with real-time data.
             </p>
             <div className="space-y-2">
-              <div className="flex items-center gap-2 text-[#99a1af] text-sm">
+              <div className="flex items-center gap-2 text-[var(--app-text-muted)] text-sm">
                 <MapPin className="w-4 h-4 shrink-0" />
                 <span>Toronto, Ontario, Canada</span>
               </div>
-              <div className="flex items-center gap-2 text-[#99a1af] text-sm">
+              <div className="flex items-center gap-2 text-[var(--app-text-muted)] text-sm">
                 <Mail className="w-4 h-4 shrink-0" />
                 <span>hello@smartcity.io</span>
               </div>
-              <div className="flex items-center gap-2 text-[#99a1af] text-sm">
+              <div className="flex items-center gap-2 text-[var(--app-text-muted)] text-sm">
                 <Phone className="w-4 h-4 shrink-0" />
                 <span>+1 (416) 555-0100</span>
               </div>
@@ -60,7 +60,7 @@ export default function Footer() {
                 <li key={link.label}>
                   <button
                     onClick={() => navigate(link.path)}
-                    className="text-[#99a1af] hover:text-white text-sm transition-colors"
+                    className="text-[var(--app-text-muted)] hover:text-white text-sm transition-colors"
                   >
                     {link.label}
                   </button>
@@ -77,7 +77,7 @@ export default function Footer() {
                 <li key={link.label}>
                   <button
                     onClick={() => navigate(link.path)}
-                    className="text-[#99a1af] hover:text-white text-sm transition-colors"
+                    className="text-[var(--app-text-muted)] hover:text-white text-sm transition-colors"
                   >
                     {link.label}
                   </button>
@@ -89,7 +89,7 @@ export default function Footer() {
           {/* Newsletter */}
           <div>
             <h4 className="text-white font-semibold mb-4">Stay Updated</h4>
-            <p className="text-[#99a1af] text-sm mb-4">
+            <p className="text-[var(--app-text-muted)] text-sm mb-4">
               Get the latest city updates and features delivered to your inbox.
             </p>
             <form
@@ -99,7 +99,7 @@ export default function Footer() {
               <input
                 type="email"
                 placeholder="Enter your email"
-                className="bg-[#23262f] text-white placeholder-[#6b7280] px-4 py-2.5 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1152d4] transition-all"
+                className="bg-[var(--app-card)] text-[var(--app-text)] placeholder-[#6b7280] px-4 py-2.5 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1152d4] transition-all"
               />
               <button
                 type="submit"
@@ -112,7 +112,7 @@ export default function Footer() {
         </div>
 
         {/* Bottom Bar */}
-        <div className="border-t border-[#2a2e3a] mt-8 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="border-t border-[var(--app-card-inner)] mt-8 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-[#6b7280] text-xs">
             2026 Smart City Explorer. All rights reserved.
           </p>

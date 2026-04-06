@@ -37,17 +37,17 @@ export default function ListPreview({
         </h3>
         <button
           onClick={() => navigate(navigateTo)}
-          className="text-[#99a1af] hover:text-white transition-colors flex items-center gap-1 text-sm"
+          className="flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-lg bg-[#1152d4]/10 text-[#1152d4] hover:bg-[#1152d4]/20 transition-colors"
         >
-          {"\u2630"} See All
+          See All &rsaquo;
         </button>
       </div>
 
-      <div className="space-y-3">
+      <div className="space-y-4">
         {items.map((item) => (
           <div
             key={item.id}
-            className="bg-[#23262f] rounded-2xl p-4 hover:bg-[#2a2e3a] transition-colors cursor-pointer flex items-center gap-4"
+            className="bg-[var(--app-card)] border border-[var(--app-border)] rounded-2xl p-4 hover:bg-[var(--app-card-inner)] transition-colors cursor-pointer flex items-center gap-4"
             onClick={() => onItemClick?.(item.id)}
           >
             <div className="w-14 h-14 rounded-xl shrink-0 overflow-hidden">
@@ -58,12 +58,12 @@ export default function ListPreview({
                   className="w-full h-full object-cover"
                 />
               ) : (
-                <div className="w-full h-full bg-[#3a3e4a]" />
+                <div className="w-full h-full bg-[var(--app-card-hover)]" />
               )}
             </div>
             <div className="flex-1 min-w-0">
               <h4 className="font-semibold mb-1 truncate">{item.name}</h4>
-              <div className="flex items-center gap-2 text-sm text-[#99a1af]">
+              <div className="flex items-center gap-2 text-sm text-[var(--app-text-muted)]">
                 <div className="flex items-center gap-1">
                   <DashboardStarIcon />
                   <span>{item.rating}</span>
@@ -74,7 +74,7 @@ export default function ListPreview({
                 <span>{"$".repeat(item.priceLevel)}</span>
               </div>
             </div>
-            <div className="text-[#99a1af]">&rsaquo;</div>
+            <div className="text-[var(--app-text-muted)]">&rsaquo;</div>
           </div>
         ))}
       </div>

@@ -35,7 +35,7 @@ export default function FeaturedEvent({ event, onClick }: FeaturedEventProps) {
       </div>
 
       <div
-        className="bg-[#23262f] rounded-2xl overflow-hidden flex flex-col lg:flex-row cursor-pointer hover:bg-[#2a2e3a] transition-colors"
+        className="bg-[var(--app-card)] rounded-2xl overflow-hidden flex flex-col lg:flex-row cursor-pointer hover:bg-[var(--app-card-inner)] transition-colors"
         onClick={onClick}
       >
         <div className="lg:w-1/3 h-64 lg:h-auto relative">
@@ -49,11 +49,11 @@ export default function FeaturedEvent({ event, onClick }: FeaturedEventProps) {
             <div className="w-full h-full bg-gradient-to-br from-blue-500 to-purple-600" />
           )}
           {event.badge && (
-            <span className="absolute top-4 left-4 bg-orange-500 text-white px-4 py-1 rounded-lg text-sm font-semibold">
+            <span className="absolute top-4 left-4 bg-orange-500 text-[var(--app-text)] px-4 py-1 rounded-lg text-sm font-semibold">
               {event.badge}
             </span>
           )}
-          <div className="absolute bottom-4 left-4 bg-black/60 backdrop-blur-sm text-white px-3 py-2 rounded-lg flex items-center gap-2">
+          <div className="absolute bottom-4 left-4 bg-black/60 backdrop-blur-sm text-[var(--app-text)] px-3 py-2 rounded-lg flex items-center gap-2">
             <UsersGroupIcon className="w-4 h-4" />
             <span className="text-sm font-semibold">
               {event.attendees} going
@@ -62,41 +62,45 @@ export default function FeaturedEvent({ event, onClick }: FeaturedEventProps) {
         </div>
 
         <div className="flex-1 p-6 flex flex-col">
-          <p className="text-[#99a1af] text-sm mb-2">{event.category}</p>
+          <p className="text-[var(--app-text-muted)] text-sm mb-2">{event.category}</p>
           <h3 className="text-3xl font-bold mb-3">{event.name}</h3>
-          <p className="text-[#99a1af] mb-4 flex-1">
+          <p className="text-[var(--app-text-muted)] mb-4 flex-1">
             Experience an unforgettable evening of live music featuring
             world-renowned artists. Dance, sing, and create memories under the
             stars.
           </p>
 
           <div className="space-y-3 mb-6">
-            <div className="flex items-center gap-2 text-[#99a1af]">
+            <div className="flex items-center gap-2 text-[var(--app-text-muted)]">
               <Calendar className="w-5 h-5" />
               <span>{event.date}</span>
             </div>
-            <div className="flex items-center gap-2 text-[#99a1af]">
+            <div className="flex items-center gap-2 text-[var(--app-text-muted)]">
               <ClockIcon className="w-5 h-5" />
               <span>{event.time}</span>
             </div>
-            <div className="flex items-center gap-2 text-[#99a1af]">
+            <div className="flex items-center gap-2 text-[var(--app-text-muted)]">
               <LocationPinIcon className="w-5 h-5" />
               <span>{event.location}</span>
             </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
-            <div className="bg-[#3a3e4a] px-4 py-3 rounded-lg">
+            <div className="bg-[var(--app-card-hover)] px-4 py-3 rounded-lg">
               <p className="text-2xl font-bold">
-                {typeof event.price === "number"
-                  ? `$${event.price}`
+                {event.price === null
+                  ? "See site"
+                  : typeof event.price === "number"
+                  ? `From $${event.price}`
                   : event.price}
               </p>
-              <p className="text-xs text-[#99a1af]">per ticket</p>
+              <p className="text-xs text-[var(--app-text-muted)]">
+                {event.price === null ? "for pricing" : event.price === "Free" ? "" : "per ticket"}
+              </p>
             </div>
 
             <a
-              href={searchUrl}
+              href={event.url || searchUrl}
               target="_blank"
               rel="noopener noreferrer"
               onClick={(e) => e.stopPropagation()}
@@ -106,18 +110,18 @@ export default function FeaturedEvent({ event, onClick }: FeaturedEventProps) {
               <ExternalLink className="w-3 h-3" />
             </a>
             <a
-              href={searchUrl}
+              href={event.url || searchUrl}
               target="_blank"
               rel="noopener noreferrer"
               onClick={(e) => e.stopPropagation()}
-              className="bg-[#3a3e4a] hover:bg-[#4a4e5a] transition-colors text-white px-6 py-3 rounded-lg font-medium flex items-center gap-2"
+              className="bg-[var(--app-card-hover)] hover:bg-[var(--app-card-hover)] transition-colors text-[var(--app-text)] px-6 py-3 rounded-lg font-medium flex items-center gap-2"
             >
               Learn More
               <ExternalLink className="w-3 h-3" />
             </a>
             <button
               onClick={handleDirections}
-              className="bg-[#3a3e4a] hover:bg-[#4a4e5a] transition-colors text-white px-6 py-3 rounded-lg font-medium"
+              className="bg-[var(--app-card-hover)] hover:bg-[var(--app-card-hover)] transition-colors text-[var(--app-text)] px-6 py-3 rounded-lg font-medium"
             >
               Directions
             </button>

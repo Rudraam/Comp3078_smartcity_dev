@@ -176,6 +176,7 @@ export type EventSortKey =
   | "attendees-desc";
 
 function getEventPrice(e: EventItem): number {
+  if (e.price === null) return Infinity;
   return e.price === "Free" ? 0 : e.price;
 }
 
@@ -186,8 +187,8 @@ export function filterEvents(
   return events.filter((e) => {
     const price = getEventPrice(e);
     if (filters.freeOnly && e.price !== "Free") return false;
-    if (filters.minPrice !== "" && price < filters.minPrice) return false;
-    if (filters.maxPrice !== "" && price > filters.maxPrice) return false;
+    if (filters.minPrice !== "" && price !== Infinity && price < filters.minPrice) return false;
+    if (filters.maxPrice !== "" && price !== Infinity && price > filters.maxPrice) return false;
     if (filters.minAttendees !== "" && e.attendees < filters.minAttendees)
       return false;
     return true;

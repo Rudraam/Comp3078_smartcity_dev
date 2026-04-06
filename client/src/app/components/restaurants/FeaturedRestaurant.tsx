@@ -38,7 +38,7 @@ export default function FeaturedRestaurant({
       </div>
 
       <div
-        className="bg-[#23262f] rounded-2xl overflow-hidden flex flex-col lg:flex-row cursor-pointer hover:bg-[#2a2e3a] transition-colors"
+        className="bg-[var(--app-card)] rounded-2xl overflow-hidden flex flex-col lg:flex-row cursor-pointer hover:bg-[var(--app-card-inner)] transition-colors"
         onClick={onClick}
       >
         <div className="lg:w-1/3 h-64 lg:h-auto relative">
@@ -49,7 +49,7 @@ export default function FeaturedRestaurant({
               className="w-full h-full object-cover"
             />
           ) : (
-            <div className="w-full h-full bg-[#3a3e4a]" />
+            <div className="w-full h-full bg-[var(--app-card-hover)]" />
           )}
           <span className="absolute top-4 left-4 bg-[#1152d4] text-white px-4 py-1 rounded-lg text-sm font-semibold">
             Featured
@@ -57,9 +57,9 @@ export default function FeaturedRestaurant({
         </div>
 
         <div className="flex-1 p-6 flex flex-col">
-          <p className="text-[#99a1af] text-sm mb-2">{restaurant.category}</p>
+          <p className="text-[var(--app-text-muted)] text-sm mb-2">{restaurant.category}</p>
           <h3 className="text-3xl font-bold mb-3">{restaurant.name}</h3>
-          <p className="text-[#99a1af] mb-4 flex-1">
+          <p className="text-[var(--app-text-muted)] mb-4 flex-1">
             Experience authentic cuisine in the heart of downtown. Perfect for
             special occasions and business dinners.
           </p>
@@ -68,21 +68,21 @@ export default function FeaturedRestaurant({
             <div className="flex items-center gap-1">
               <StarIcon size="md" />
               <span className="font-semibold">{restaurant.rating}</span>
-              <span className="text-[#99a1af]">
+              <span className="text-[var(--app-text-muted)]">
                 ({restaurant.reviews} reviews)
               </span>
             </div>
-            <span className="text-[#99a1af]">&bull;</span>
-            <span className="text-white font-semibold">
+            <span className="text-[var(--app-text-muted)]">&bull;</span>
+            <span className="text-[var(--app-text)] font-semibold">
               {"$".repeat(restaurant.priceLevel)}
             </span>
-            <span className="text-[#99a1af]">&bull;</span>
-            <div className="flex items-center gap-2 text-[#99a1af]">
+            <span className="text-[var(--app-text-muted)]">&bull;</span>
+            <div className="flex items-center gap-2 text-[var(--app-text-muted)]">
               <LocationPinIcon className="w-4 h-4" />
               {restaurant.distance}
             </div>
-            <span className="text-[#99a1af]">&bull;</span>
-            <div className="flex items-center gap-2 text-[#99a1af]">
+            <span className="text-[var(--app-text-muted)]">&bull;</span>
+            <div className="flex items-center gap-2 text-[var(--app-text-muted)]">
               <ClockIcon className="w-4 h-4" />
               {restaurant.hours}
             </div>
@@ -104,14 +104,14 @@ export default function FeaturedRestaurant({
               target="_blank"
               rel="noopener noreferrer"
               onClick={(e) => e.stopPropagation()}
-              className="bg-[#3a3e4a] hover:bg-[#4a4e5a] transition-colors text-white px-6 py-3 rounded-lg font-medium flex items-center gap-2"
+              className="bg-[var(--app-card-hover)] hover:bg-[var(--app-card-hover)] transition-colors text-[var(--app-text)] px-6 py-3 rounded-lg font-medium flex items-center gap-2"
             >
               View Menu
               <ExternalLink className="w-3 h-3" />
             </a>
             <button
               onClick={handleDirections}
-              className="bg-[#3a3e4a] hover:bg-[#4a4e5a] transition-colors text-white px-6 py-3 rounded-lg font-medium"
+              className="bg-[var(--app-card-hover)] hover:bg-[var(--app-card-hover)] transition-colors text-[var(--app-text)] px-6 py-3 rounded-lg font-medium"
             >
               Directions
             </button>

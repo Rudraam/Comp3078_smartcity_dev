@@ -6,7 +6,7 @@ export default function NotFoundPage() {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-[#1a1d26] text-white font-['Inter',sans-serif] flex items-center justify-center px-6">
+    <div className="min-h-screen bg-[var(--app-bg)] text-[var(--app-text)] font-['Inter',sans-serif] flex items-center justify-center px-6">
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -26,7 +26,7 @@ export default function NotFoundPage() {
 
         <h1 className="text-7xl font-bold text-[#1152d4] mb-4">404</h1>
         <h2 className="text-2xl font-semibold mb-3">Location Not Found</h2>
-        <p className="text-[#99a1af] mb-8">
+        <p className="text-[var(--app-text-muted)] mb-8">
           Looks like this destination doesn't exist on our map. Let's get you
           back to exploring the city.
         </p>
@@ -34,7 +34,7 @@ export default function NotFoundPage() {
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
           <button
             onClick={() => navigate(-1)}
-            className="bg-[#23262f] hover:bg-[#2a2e3a] transition-colors text-white px-6 py-3 rounded-lg font-medium flex items-center justify-center gap-2"
+            className="bg-[var(--app-card)] hover:bg-[var(--app-card-inner)] transition-colors text-[var(--app-text)] px-6 py-3 rounded-lg font-medium flex items-center justify-center gap-2"
           >
             <ArrowLeft className="w-4 h-4" />
             Go Back

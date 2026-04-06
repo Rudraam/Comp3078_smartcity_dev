@@ -19,7 +19,7 @@ export default function AlertsPanel({
   onFilterChange,
 }: AlertsPanelProps) {
   return (
-    <div className="bg-[#23262f] rounded-2xl p-6">
+    <div className="bg-[var(--app-card)] rounded-2xl p-6">
       <h3 className="text-xl font-semibold mb-4">Alerts</h3>
 
       {/* Filter Buttons */}
@@ -31,7 +31,7 @@ export default function AlertsPanel({
             className={`px-4 py-2 rounded-lg text-sm transition-colors ${
               activeFilter === option.value
                 ? "bg-[#1152d4] text-white"
-                : "bg-[#2a2e3a] text-[#99a1af] hover:bg-[#3a3e4a]"
+                : "bg-[var(--app-card-inner)] text-[var(--app-text-muted)] hover:bg-[var(--app-card-hover)]"
             }`}
           >
             {option.label}
@@ -44,13 +44,13 @@ export default function AlertsPanel({
         {alerts.map((alert) => (
           <div
             key={alert.id}
-            className="bg-[#2a2e3a] rounded-xl p-4 hover:bg-[#3a3e4a] transition-colors cursor-pointer"
+            className="bg-[var(--app-card-inner)] rounded-xl p-4 hover:bg-[var(--app-card-hover)] transition-colors cursor-pointer"
           >
             <div className="flex items-start gap-3">
               <div className="text-2xl shrink-0">{alert.icon}</div>
               <div className="flex-1 min-w-0">
                 <h4 className="font-semibold mb-1 text-sm">{alert.title}</h4>
-                <p className="text-xs text-[#99a1af] line-clamp-2">
+                <p className="text-xs text-[var(--app-text-muted)] line-clamp-2">
                   {alert.description}
                 </p>
               </div>

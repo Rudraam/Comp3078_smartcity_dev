@@ -48,7 +48,7 @@ const settingsItems: SettingsItem[] = [
 
 export default function SettingsSection() {
   return (
-    <div className="bg-[#23262f] rounded-2xl p-6">
+    <div className="bg-[var(--app-card)] rounded-2xl p-6">
       <div className="flex items-center gap-2 mb-6">
         <SettingsIcon className="w-5 h-5" />
         <h3 className="text-xl font-semibold">Settings</h3>
@@ -58,15 +58,15 @@ export default function SettingsSection() {
         {settingsItems.map((item) => (
           <div
             key={item.title}
-            className="bg-[#2a2e3a] rounded-xl p-4 flex items-center justify-between hover:bg-[#3a3e4a] transition-colors cursor-pointer"
+            className="bg-[var(--app-card-inner)] rounded-xl p-4 flex items-center justify-between hover:bg-[var(--app-card-hover)] transition-colors cursor-pointer"
           >
             <div className="flex items-start gap-4">
-              <div className="bg-[#314158] rounded-lg w-12 h-12 flex items-center justify-center shrink-0">
+              <div className="bg-[var(--app-icon-bg)] rounded-lg w-12 h-12 flex items-center justify-center shrink-0">
                 {item.icon}
               </div>
               <div>
                 <h4 className="font-semibold mb-1">{item.title}</h4>
-                <p className="text-sm text-[#99a1af]">{item.description}</p>
+                <p className="text-sm text-[var(--app-text-muted)]">{item.description}</p>
               </div>
             </div>
             <span className="text-[#1152d4] text-sm font-medium">

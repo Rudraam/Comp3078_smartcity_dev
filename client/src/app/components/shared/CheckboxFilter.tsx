@@ -21,7 +21,7 @@ export default function CheckboxFilter({
 
   return (
     <div>
-      <label className="block text-sm text-[#99a1af] mb-2">{label}</label>
+      <label className="block text-sm text-[var(--app-text-muted)] mb-2 font-medium">{label}</label>
       <div className="flex flex-wrap gap-2">
         {options.map((option) => {
           const isSelected = selected.includes(option);
@@ -29,10 +29,10 @@ export default function CheckboxFilter({
             <button
               key={option}
               onClick={() => toggle(option)}
-              className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
+              className={`px-3.5 py-1.5 rounded-lg text-sm font-medium transition-all ${
                 isSelected
-                  ? "bg-[#1152d4] text-white"
-                  : "bg-[#23262f] text-[#99a1af] hover:bg-[#2a2e3a]"
+                  ? "bg-[#1152d4] text-white border border-[#1152d4] shadow-sm"
+                  : "bg-[var(--app-bg)] text-[var(--app-text)] border border-[var(--app-border)] hover:border-[#1152d4]/60 hover:text-[#1152d4]"
               }`}
             >
               {option}

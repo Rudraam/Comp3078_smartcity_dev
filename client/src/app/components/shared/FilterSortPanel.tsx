@@ -18,19 +18,19 @@ export default function FilterSortPanel({
   if (!isOpen) return null;
 
   return (
-    <div className="bg-[#1a1d24] border border-[#2a2e3a] rounded-xl p-6 mb-6">
+    <div className="bg-[var(--app-card)] border border-[var(--app-border)] rounded-xl p-6 mb-6">
       <div className="flex items-center justify-between mb-5">
         <h3 className="text-lg font-semibold">{title}</h3>
         <div className="flex items-center gap-3">
           <button
             onClick={onClear}
-            className="text-sm text-[#99a1af] hover:text-white transition-colors"
+            className="text-sm text-[var(--app-text-muted)] hover:text-[var(--app-text)] transition-colors"
           >
             Clear All
           </button>
           <button
             onClick={onClose}
-            className="text-[#99a1af] hover:text-white transition-colors"
+            className="text-[var(--app-text-muted)] hover:text-[var(--app-text)] transition-colors"
           >
             <X className="w-5 h-5" />
           </button>

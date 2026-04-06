@@ -61,6 +61,10 @@ export interface Restaurant {
   openNow?: boolean;
   lat?: number;
   lon?: number;
+  isUserSubmission?: boolean;
+  address?: string;
+  website?: string;
+  description?: string;
 }
 
 export interface HotelItem {
@@ -78,6 +82,10 @@ export interface HotelItem {
   image?: string;
   lat?: number;
   lon?: number;
+  isUserSubmission?: boolean;
+  address?: string;
+  website?: string;
+  description?: string;
 }
 
 export interface EventItem {
@@ -88,12 +96,15 @@ export interface EventItem {
   time: string;
   location: string;
   attendees: number;
-  price: number | "Free";
+  price: number | "Free" | null;
   featured?: boolean;
   image?: string;
   badge?: string;
   lat?: number;
   lon?: number;
+  url?: string;
+  isUserSubmission?: boolean;
+  description?: string;
 }
 
 export interface TransportMode {

@@ -1,5 +1,6 @@
-import { useState, useEffect, useMemo } from "react";
-import { Calendar, SlidersHorizontal, Loader2 } from "lucide-react";
+import { useState, useMemo } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Calendar, SlidersHorizontal, Loader2, RefreshCw } from "lucide-react";
 import PageLayout from "./shared/PageLayout";
 import SearchInput from "./shared/SearchInput";
 import StatsGrid from "./shared/StatsGrid";
@@ -34,6 +35,7 @@ const sortOptions = [
 
 export default function EventsPage() {
   const { city } = useCity();
+  const queryClient = useQueryClient();
   const eventModal = useDetailModal<EventItem>();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
@@ -41,30 +43,24 @@ export default function EventsPage() {
   const [filters, setFilters] = useState<EventFilters>(defaultEventFilters);
   const [sortKey, setSortKey] = useState<EventSortKey>("default");
 
-  const [allData, setAllData] = useState<EventItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const queryKey = `/api/events?city=${encodeURIComponent(city)}&limit=50`;
 
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    setError("");
-    fetch(`/api/events?city=${encodeURIComponent(city)}&limit=20`)
-      .then(res => {
-        if (!res.ok) throw new Error("Failed to load events");
-        return res.json();
-      })
-      .then(data => {
-        if (!cancelled) setAllData(data.events || []);
-      })
-      .catch(err => {
-        if (!cancelled) setError(err.message);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => { cancelled = true; };
-  }, [city]);
+  const { data: apiData, isLoading: loading, isFetching, error: queryError, refetch } = useQuery<{ events: EventItem[] }>({
+    queryKey: [queryKey],
+    queryFn: async () => {
+      const res = await fetch(queryKey);
+      if (!res.ok) throw new Error("Failed to load events");
+      return res.json();
+    },
+  });
+
+  const handleRefresh = async () => {
+    await queryClient.invalidateQueries({ queryKey: [queryKey] });
+    refetch();
+  };
+
+  const allData = apiData?.events ?? [];
+  const error = queryError ? (queryError as Error).message : "";
 
   const categories = useMemo(() => {
     const cats = new Set(allData.map(e => e.category));
@@ -77,7 +73,7 @@ export default function EventsPage() {
   const activeFilterCount = countActiveFilters(filters);
 
   const stats = useMemo(() => {
-    const freeCount = allData.filter(e => e.price === "Free" || e.price === 0).length;
+    const freeCount = allData.filter(e => e.price === "Free").length;
     const totalAttendees = allData.reduce((s, e) => s + e.attendees, 0);
     return [
       { value: String(allData.length), label: "Upcoming Events" },
@@ -120,16 +116,27 @@ export default function EventsPage() {
 
   return (
     <PageLayout>
-      <div className="flex items-center gap-3 mb-2">
-        <Calendar className="w-10 h-10" />
-        <h1 className="text-5xl font-bold">Events</h1>
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-3">
+          <Calendar className="w-10 h-10" />
+          <h1 className="text-5xl font-bold">Events</h1>
+        </div>
+        <button
+          onClick={handleRefresh}
+          disabled={isFetching}
+          title="Refresh events"
+          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[var(--app-card)] text-[var(--app-text-muted)] hover:text-[var(--app-text)] transition-colors disabled:opacity-50 text-sm"
+        >
+          <RefreshCw className={`w-4 h-4 ${isFetching ? "animate-spin" : ""}`} />
+          {isFetching ? "Refreshing..." : "Refresh"}
+        </button>
       </div>
-      <p className="text-[#99a1af] mb-6">Showing results for <span className="text-white font-medium">{city}</span></p>
+      <p className="text-[var(--app-text-muted)] mb-6">Showing results for <span className="text-[var(--app-text)] font-medium">{city}</span></p>
 
       {loading ? (
         <div className="flex flex-col items-center justify-center py-20">
           <Loader2 className="w-10 h-10 animate-spin text-[#1152d4] mb-4" />
-          <p className="text-[#99a1af]">Finding events in {city}...</p>
+          <p className="text-[var(--app-text-muted)]">Finding events in {city}...</p>
         </div>
       ) : error ? (
         <div className="text-center py-20">
@@ -148,12 +155,12 @@ export default function EventsPage() {
             />
             <input
               type="date"
-              className="bg-[#23262f] text-white px-6 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1152d4] transition-all"
+              className="bg-[var(--app-card)] text-[var(--app-text)] px-6 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1152d4] transition-all"
             />
             <input
               type="text"
               placeholder="Location"
-              className="bg-[#23262f] text-white placeholder-[#6b7280] px-6 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1152d4] transition-all"
+              className="bg-[var(--app-card)] text-[var(--app-text)] placeholder-[#6b7280] px-6 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1152d4] transition-all"
             />
           </div>
 
@@ -163,10 +170,10 @@ export default function EventsPage() {
             </button>
             <button
               onClick={() => setFiltersOpen(!filtersOpen)}
-              className={`flex items-center gap-2 px-6 py-3 rounded-lg transition-colors ${
+              className={`flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-all ${
                 filtersOpen || activeFilterCount > 0
-                  ? "bg-[#1152d4] text-white"
-                  : "bg-[#23262f] hover:bg-[#2a2e3a] text-white"
+                  ? "bg-[#1152d4] text-white border border-[#1152d4] shadow-sm"
+                  : "bg-[var(--app-bg)] text-[var(--app-text)] border border-[var(--app-border)] hover:border-[#1152d4]/60 hover:text-[#1152d4]"
               }`}
             >
               <SlidersHorizontal className="w-4 h-4" />
@@ -182,7 +189,7 @@ export default function EventsPage() {
           <FilterSortPanel
             isOpen={filtersOpen}
             onClose={() => setFiltersOpen(false)}
-            onClear={clearFilters}
+            onClear={() => { clearFilters(); setSelectedCategory("All"); }}
           >
             <RangeInput
               label="Price Range"
@@ -211,27 +218,27 @@ export default function EventsPage() {
               onChange={(v) => setSortKey(v as EventSortKey)}
             />
             <div>
-              <label className="block text-sm text-[#99a1af] mb-2">
+              <label className="block text-sm text-[var(--app-text-muted)] mb-2 font-medium">
                 Quick Filters
               </label>
               <button
                 onClick={() => updateFilter("freeOnly", !filters.freeOnly)}
-                className={`px-4 py-2 rounded-lg text-sm transition-colors ${
+                className={`px-3.5 py-1.5 rounded-lg text-sm font-medium transition-all ${
                   filters.freeOnly
-                    ? "bg-[#1152d4] text-white"
-                    : "bg-[#23262f] text-[#99a1af] hover:bg-[#2a2e3a]"
+                    ? "bg-[#1152d4] text-white border border-[#1152d4] shadow-sm"
+                    : "bg-[var(--app-bg)] text-[var(--app-text)] border border-[var(--app-border)] hover:border-[#1152d4]/60 hover:text-[#1152d4]"
                 }`}
               >
                 Free Events Only
               </button>
             </div>
+            <CategoryFilter
+              categories={categories}
+              selected={selectedCategory}
+              onSelect={setSelectedCategory}
+              className="col-span-full"
+            />
           </FilterSortPanel>
-
-          <CategoryFilter
-            categories={categories}
-            selected={selectedCategory}
-            onSelect={setSelectedCategory}
-          />
 
           {featuredEvent && <FeaturedEvent event={featuredEvent} onClick={() => eventModal.open(featuredEvent)} />}
 
@@ -239,7 +246,7 @@ export default function EventsPage() {
             <div className="flex items-center justify-between gap-2 mb-4">
               <h2 className="text-2xl font-semibold">
                 Upcoming Events
-                <span className="text-sm text-[#99a1af] font-normal ml-2">
+                <span className="text-sm text-[var(--app-text-muted)] font-normal ml-2">
                   ({processedEvents.length} results)
                 </span>
               </h2>
@@ -249,7 +256,7 @@ export default function EventsPage() {
             </div>
 
             {processedEvents.length === 0 ? (
-              <div className="text-center py-12 text-[#99a1af]">
+              <div className="text-center py-12 text-[var(--app-text-muted)]">
                 <p className="text-lg mb-2">No events found</p>
                 <p className="text-sm">Try adjusting your filters or search query</p>
               </div>
